@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+    <name>FlatternPattern</name>
+    <id>io.github.weiss-d.flattern_pattern</id>
+    <param name="tab" type="notebook">
+        <page name="options" gui-text="Options">
+            <param name="mode" type="optiongroup" appearance="combo" gui-text="Output mode:">
+                <option value="clipped">Clipped copies</option>
+                <option value="merged">Merged outlines</option>
+            </param>
+            <param name="stroke_patterns" type="bool" gui-text="Also flatten stroke patterns (clipped mode only)">true</param>
+            <param name="keep_original" type="bool" gui-text="Keep a hidden copy of the original">false</param>
+            <param name="cleanup_defs" type="bool" gui-text="Remove unused pattern definitions">true</param>
+            <param name="tile_limit" type="int" min="1" max="1000000" gui-text="Maximum number of tiles:">2000</param>
+            <param name="tolerance" type="float" min="0" max="1" precision="3" gui-text="Seam overlap (merged mode):">0.01</param>
+        </page>
+        <page name="help" gui-text="Help">
+            <label xml:space="preserve">FlatternPattern replaces a pattern fill with real geometry.
+
+Clipped copies: the extension puts one copy of the tile content for each tile. A clip path with the shape of the object hides the rest. The result is exact and you can edit it.
+
+Merged outlines: the extension converts strokes to paths and makes one filled path. Use this mode for stencils, plotters and cutters. This mode starts Inkscape in the background and needs more time.
+
+The extension skips these objects and shows a message:
+- text (use Object to Path first)
+- clones (unlink them first)
+- hatch fills and mesh gradients
+
+If the number of tiles is more than the maximum, the extension stops and changes nothing.</label>
+        </page>
+    </param>
+    <effect needs-live-preview="false">
+        <object-type>all</object-type>
+        <effects-menu>
+            <submenu name="Modify Path"/>
+        </effects-menu>
+    </effect>
+    <script>
+        <command location="inx" interpreter="python">flatternpattern.py</command>
+    </script>
+</inkscape-extension>
