@@ -1,0 +1,47 @@
+<svg id="root" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+     width="200" height="200" viewBox="0 0 200 200">
+  <defs>
+    <!-- The Inkscape layout: a wrapper with the transform, a base with the content. -->
+    <pattern id="base" patternUnits="userSpaceOnUse" width="41" height="71"
+             viewBox="0,0 41 71" preserveAspectRatio="none">
+      <path id="line" d="M0 0 L41 71" stroke="#000" stroke-width="3"/>
+    </pattern>
+    <pattern id="wrap" xlink:href="#base"
+             patternTransform="matrix(1.849 0.393 -0.393 1.849 -12.49 -1962.581)"/>
+    <pattern id="wrap2" xlink:href="#wrap" x="5" width="20"/>
+
+    <pattern id="bare"><rect id="bare_rect" width="1" height="1"/></pattern>
+
+    <pattern id="titled" xlink:href="#base"><title>Only a title</title></pattern>
+    <pattern id="own_content" xlink:href="#base"><circle id="dot" r="2"/></pattern>
+
+    <pattern id="both" href="#bare" xlink:href="#base"/>
+    <pattern id="external" href="other.svg#p" width="7"/>
+    <pattern id="to_rect" href="#a_rect" width="8"/>
+    <pattern id="to_missing" href="#nothing" width="9"/>
+
+    <pattern id="cycle1" xlink:href="#cycle2"/>
+    <pattern id="cycle2" xlink:href="#cycle1"/>
+    <pattern id="self" xlink:href="#self"/>
+
+    <pattern id="bad_viewbox" viewBox="0 0 10" width="10" height="10"/>
+
+    <!-- Empty and not valid values count as not set, so the base gives them. -->
+    <pattern id="empty_base" patternTransform="translate(5,5)" width="4"/>
+    <pattern id="empty_wrap" xlink:href="#empty_base" patternTransform="" width=" "/>
+    <pattern id="bad_wrap" xlink:href="#base" viewBox="0 0 10" patternUnits="foo"
+             patternContentUnits="" patternTransform="garbage" preserveAspectRatio="sideways"
+             x="abc" width="12q"/>
+    <pattern id="spaced" patternUnits=" userSpaceOnUse " x=" 2.5e1% " width="1"/>
+
+    <!-- A non-SVG child does not render, so it is not content. -->
+    <pattern id="ns_wrap" xlink:href="#base"><sodipodi:guide position="0,0"/></pattern>
+
+    <!-- A cycle that starts at a pattern with no id. -->
+    <pattern class="anon" xlink:href="#loop_a"/>
+    <pattern id="loop_a" xlink:href="#loop_b"/>
+    <pattern id="loop_b" xlink:href="#loop_a"/>
+  </defs>
+  <rect id="a_rect" width="10" height="10"/>
+</svg>
