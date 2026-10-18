@@ -13,7 +13,9 @@ SVG_NS = "{" + inkex.NSS["svg"] + "}"
 # These SVG children do not count as pattern content.
 NOT_CONTENT = {"title", "desc", "metadata"}
 
-LENGTH_RE = re.compile(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?(%|px|pt|pc|mm|cm|in|em|ex)?")
+LENGTH_RE = re.compile(
+    r"(?P<number>[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?)(?P<unit>%|px|pt|pc|mm|cm|in|em|ex)?"
+)
 TRANSFORM_RE = re.compile(r"(\s*[a-zA-Z]+\s*\([^()]*\)\s*,?)+\s*")
 ASPECT_RE = re.compile(r"(defer\s+)?(none|x(Min|Mid|Max)Y(Min|Mid|Max))(\s+(meet|slice))?")
 UNITS = {"userSpaceOnUse", "objectBoundingBox"}
@@ -52,17 +54,32 @@ CHAIN_ATTRS: dict[str, tuple[str | None, Callable[[str], object]]] = {
 }
 
 
-class ResolveError(ValueError):
-    """The pattern cannot be resolved. The message tells the user why."""
+class SkipError(ValueError):
+    """The extension cannot flatten the target. The message tells the user why.
+
+    No code catches this error yet. The effect does not call the resolver or the tiling."""
+
+
+class Length(NamedTuple):
+    value: float
+    unit: str  # "", "%" or a unit name such as "mm"
+
+
+def parse_length(text: str) -> Length:
+    """Parse a length that LENGTH_RE accepts."""
+    match = LENGTH_RE.fullmatch(text)
+    if match is None:
+        raise ValueError(f"Not a length: {text!r}")
+    return Length(float(match["number"]), match["unit"] or "")
 
 
 class ResolvedPattern(NamedTuple):
     ids: tuple[str, ...]  # all ids in the chain. No code uses them yet.
     content: list  # child elements to copy, from the first node that has some
-    x: str
-    y: str
-    width: str
-    height: str
+    x: Length
+    y: Length
+    width: Length
+    height: Length
     units: str  # patternUnits
     content_units: str  # patternContentUnits
     transform: inkex.Transform  # patternTransform
@@ -90,7 +107,7 @@ def chain(pattern) -> list:
             names = " > ".join(
                 f"#{i}" if (i := n.get("id")) else "<pattern>" for n in [*nodes, nxt]
             )
-            raise ResolveError(f"The pattern has a circular href chain: {names}.")
+            raise SkipError(f"The pattern has a circular href chain: {names}.")
         nodes.append(nxt)
     return nodes
 
@@ -123,14 +140,15 @@ def resolve(pattern) -> ResolvedPattern:
     Each attribute comes from the first node in the chain with a valid value."""
     nodes = chain(pattern)
     # Only patternTransform and viewBox have no default, so the other values are str.
+    # The lengths passed LENGTH_RE in first_valid(), so parse_length() accepts them.
     first: dict = {attr: first_valid(nodes, attr) for attr in CHAIN_ATTRS}
     return ResolvedPattern(
         ids=tuple(filter(None, (n.get("id") for n in nodes))),
         content=next((c for n in nodes if (c := content_of(n))), []),
-        x=first["x"],
-        y=first["y"],
-        width=first["width"],
-        height=first["height"],
+        x=parse_length(first["x"]),
+        y=parse_length(first["y"]),
+        width=parse_length(first["width"]),
+        height=parse_length(first["height"]),
         units=first["patternUnits"],
         content_units=first["patternContentUnits"],
         transform=inkex.Transform(first["patternTransform"]),
