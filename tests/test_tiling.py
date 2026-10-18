@@ -56,6 +56,39 @@ def test_tile_box(kw, expected):
     assert close(ft.tile_box(rp(**kw), BBOX, VIEWPORT), expected)
 
 
+def test_inkscape_view_leaves_out_bbox_corner():
+    obb = rp(units="objectBoundingBox", x="0.5", width="0.25", height="50%")
+    assert close(ft.tile_box(obb, BBOX, VIEWPORT, inkscape_obb=True), (20, 0, 10, 10))
+    # userSpaceOnUse tiles are the same in both views.
+    assert ft.tile_box(rp(), BBOX, VIEWPORT, inkscape_obb=True) == ft.tile_box(rp(), BBOX, VIEWPORT)
+
+
+@pytest.mark.parametrize(
+    ("units", "box", "differs"),
+    [
+        # The tile is 10 x 10 in all rows.
+        ("objectBoundingBox", BBOX, False),  # corner (10, 20): whole tiles from the origin
+        ("objectBoundingBox", inkex.BoundingBox((13, 53), (20, 40)), True),  # 13 is not
+        ("objectBoundingBox", inkex.BoundingBox((0, 40), (0, 20)), False),
+        ("userSpaceOnUse", inkex.BoundingBox((13, 53), (20, 40)), False),
+    ],
+)
+def test_inkscape_view_differs(units, box, differs):
+    obb = units == "objectBoundingBox"
+    pattern = rp(units=units, width="0.25" if obb else "10", height="0.5" if obb else "10")
+    tile = ft.tile_box(pattern, box, VIEWPORT)
+    assert ft.inkscape_view_differs(pattern, tile, box) is differs
+
+
+def test_inkscape_view_differs_ignores_float_error_at_large_coordinates():
+    # 123456789 tiles of 0.1 from the origin: on the grid, but remainder() gives
+    # 3.1e-10. A tolerance of EPS * tile size (1e-10) calls it off the grid.
+    box = inkex.BoundingBox((12345678.9, 12345679.3), (0, 0.4))
+    pattern = rp(units="objectBoundingBox", width="0.25", height="0.25")
+    tile = ft.tile_box(pattern, box, VIEWPORT)
+    assert ft.inkscape_view_differs(pattern, tile, box) is False
+
+
 def test_zero_size_paints_nothing():
     assert ft.tile_box(rp(width="0"), BBOX, VIEWPORT) is None
     flat = inkex.BoundingBox((0, 10), (5, 5))

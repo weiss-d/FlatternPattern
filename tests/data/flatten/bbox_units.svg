@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- objectBoundingBox for the tile box and for the content. -->
+  <defs>
+    <pattern id="dots" patternUnits="objectBoundingBox" patternContentUnits="objectBoundingBox"
+             x="0.05" y="0.1" width="0.2" height="0.25">
+      <circle cx="0.1" cy="0.125" r="0.07" fill="#c00"/>
+    </pattern>
+  </defs>
+  <ellipse id="target" class="target" cx="100" cy="100" rx="90" ry="70" fill="url(#dots)"/>
+</svg>

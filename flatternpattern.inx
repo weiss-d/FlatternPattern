@@ -13,6 +13,8 @@
             <param name="cleanup_defs" type="bool" gui-text="Remove unused pattern definitions">true</param>
             <param name="tile_limit" type="int" min="1" max="1000000" gui-text="Maximum number of tiles:">2000</param>
             <param name="tolerance" type="float" min="0" max="1" precision="3" gui-text="Seam overlap (merged mode):">0.01</param>
+            <param name="inkscape_obb" type="bool" gui-text="Match the Inkscape view, not the SVG standard"
+                   gui-description="Inkscape 1.4 shows patterns with objectBoundingBox units at another place than browsers. Select this option to keep the Inkscape view.">false</param>
         </page>
         <page name="help" gui-text="Help">
             <label xml:space="preserve">FlatternPattern replaces a pattern fill with real geometry.

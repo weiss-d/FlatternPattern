@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- visibility:hidden on the target and on a parent group: no fill shows. -->
+  <defs>
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <path d="M 6 6 H 14 V 14 H 6 Z" fill="#06c"/>
+    </pattern>
+  </defs>
+  <rect id="own" class="target" x="10" y="10" width="85" height="180"
+        style="fill:url(#dots);visibility:hidden;stroke:#000;stroke-width:2"/>
+  <g style="visibility:hidden">
+    <rect id="inherited" class="target" x="105" y="10" width="85" height="180" fill="url(#dots)"/>
+  </g>
+</svg>

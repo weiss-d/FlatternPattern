@@ -57,7 +57,7 @@ CHAIN_ATTRS: dict[str, tuple[str | None, Callable[[str], object]]] = {
 class SkipError(ValueError):
     """The extension cannot flatten the target. The message tells the user why.
 
-    No code catches this error yet. The effect does not call the resolver or the tiling."""
+    The effect skips the target and shows the message in its report."""
 
 
 class Length(NamedTuple):

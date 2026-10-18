@@ -53,10 +53,19 @@ def to_user(length: Length, units: str, size: float, viewport: float) -> float:
     return value * size if obb else value
 
 
-def tile_box(rp: ResolvedPattern, bbox: inkex.BoundingBox, viewport: tuple[float, float]):
-    """Return the tile box in pattern space, or None when the pattern paints nothing."""
+def tile_box(
+    rp: ResolvedPattern,
+    bbox: inkex.BoundingBox,
+    viewport: tuple[float, float],
+    inkscape_obb: bool = False,
+):
+    """Return the tile box in pattern space, or None when the pattern paints nothing.
+
+    With objectBoundingBox units, the tile grid starts at the corner of the bounding
+    box. Inkscape 1.4 does not add the corner, against the SVG standard. With
+    inkscape_obb, this function does the same as Inkscape."""
     obb = rp.units == "objectBoundingBox"
-    ox, oy = (bbox.left, bbox.top) if obb else (0.0, 0.0)
+    ox, oy = (bbox.left, bbox.top) if obb and not inkscape_obb else (0.0, 0.0)
 
     def horizontal(length):
         return to_user(length, rp.units, bbox.width, viewport[0])
@@ -104,6 +113,23 @@ def content_transform(rp: ResolvedPattern, tile: Tile, bbox: inkex.BoundingBox):
     if rp.content_units == "objectBoundingBox":
         return origin @ inkex.Transform(scale=(bbox.width, bbox.height))
     return origin
+
+
+def inkscape_view_differs(rp: ResolvedPattern, tile: Tile, bbox: inkex.BoundingBox) -> bool:
+    """Return True when Inkscape 1.4 shows the pattern at another place than the
+    SVG standard.
+
+    With objectBoundingBox units, Inkscape does not move the tile grid to the corner
+    of the bounding box. The views differ when that corner is not a whole number
+    of tiles from the origin."""
+
+    def off_grid(value: float, size: float) -> bool:
+        # The float error of remainder() grows with value, so the tolerance does too.
+        return abs(math.remainder(value, size)) > EPS * max(size, abs(value))
+
+    return rp.units == "objectBoundingBox" and (
+        off_grid(bbox.left, tile.width) or off_grid(bbox.top, tile.height)
+    )
 
 
 def corners(box: inkex.BoundingBox) -> list[tuple[float, float]]:
@@ -161,14 +187,16 @@ def cells(tile: Tile, transform: inkex.Transform, region: inkex.BoundingBox):
             yield i, j
 
 
-def plan(rp: ResolvedPattern, bbox, region, viewport, limit: int) -> TilePlan | None:
+def plan(
+    rp: ResolvedPattern, bbox, region, viewport, limit: int, inkscape_obb: bool = False
+) -> TilePlan | None:
     """Make the tile plan for one target, or None when the pattern paints nothing.
 
     bbox is the geometric bounding box of the target. It sets the objectBoundingBox
     units. region is the box to cover: bbox for a fill, the stroke box for a stroke.
     If the target needs more than limit tiles, the function raises TileLimitError
     before or while it finds the tiles."""
-    tile = tile_box(rp, bbox, viewport)
+    tile = tile_box(rp, bbox, viewport, inkscape_obb)
     if tile is None:
         return None
     content = content_transform(rp, tile, bbox)

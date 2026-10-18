@@ -32,3 +32,4 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["inkscape: renders with the inkscape executable"]

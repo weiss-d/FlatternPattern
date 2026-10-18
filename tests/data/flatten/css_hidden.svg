@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Stylesheet rules, hidden targets and a filter in the tile content. -->
+  <style>
+    .faded { opacity: 0.3 }
+    .layer path { stroke: #f00; stroke-width: 4 }
+  </style>
+  <defs>
+    <filter id="blur" x="-1" y="-1" width="3" height="3">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <path d="M 6 6 H 14 V 14 H 6 Z" fill="#06c"/>
+    </pattern>
+    <pattern id="glow" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="5" fill="#c06" style="filter:url(#blur)"/>
+    </pattern>
+  </defs>
+  <!-- The class gives the opacity. -->
+  <rect id="faded" class="target faded" x="10" y="10" width="85" height="85" fill="url(#dots)"/>
+  <!-- The rule .layer path must not give a red stroke to the tile copies. -->
+  <g class="layer">
+    <path id="layered" class="target" d="M 105 10 H 190 V 95 H 105 Z" style="fill:url(#dots);stroke:none"/>
+  </g>
+  <!-- A hidden target must stay hidden. visibility.svg has visibility:hidden. -->
+  <rect id="undisplayed" class="target" x="55" y="105" width="40" height="85"
+        style="fill:url(#dots);display:none"/>
+  <!-- The blur goes past the bounding box, so the tile clip must cut it. -->
+  <rect id="blurred" class="target" x="105" y="105" width="85" height="85" fill="url(#glow)"/>
+</svg>

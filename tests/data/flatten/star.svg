@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- A target that is not a rectangle, with curves and evenodd. -->
+  <defs>
+    <pattern id="lines" patternUnits="userSpaceOnUse" width="12" height="12">
+      <path d="M 0 6 H 12 M 6 0 V 12" style="fill:none;stroke:#080;stroke-width:2"/>
+    </pattern>
+  </defs>
+  <path id="target" class="target" fill="url(#lines)" fill-rule="evenodd"
+        style="stroke:#000;stroke-width:2"
+        d="M 100 10 L 126 72 L 192 72 L 138 112 L 158 180 L 100 140 L 42 180 L 62 112
+           L 8 72 L 74 72 Z M 100 70 C 120 70 130 85 130 100 C 130 120 115 130 100 130
+           C 80 130 70 115 70 100 C 70 85 85 70 100 70 Z"/>
+</svg>

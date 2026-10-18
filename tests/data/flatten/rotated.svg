@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- The rotated and scaled patternTransform of the reference file. -->
+  <defs>
+    <pattern id="lines" patternUnits="userSpaceOnUse" width="41" height="71"
+             patternTransform="matrix(1.849 0.393 -0.393 1.849 -12.49 -1962.581)">
+      <g style="fill:none;stroke:#000;stroke-width:3;stroke-linecap:round">
+        <path d="M 0 0 L 41 71 M 41 0 L 0 71"/>
+        <path d="M 20.5 0 V 71 M 0 35.5 H 41"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect id="target" class="target" x="10" y="10" width="180" height="180" fill="url(#lines)"/>
+</svg>

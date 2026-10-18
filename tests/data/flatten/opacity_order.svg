@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- fill-opacity, opacity and paint-order on the targets. -->
+  <defs>
+    <pattern id="bars" patternUnits="userSpaceOnUse" width="10" height="10">
+      <rect width="5" height="10" fill="#00f"/>
+    </pattern>
+  </defs>
+  <rect width="200" height="200" fill="#ffd"/>
+  <rect id="faded" class="target" x="10" y="10" width="85" height="85"
+        style="fill:url(#bars);fill-opacity:0.5;stroke:#f00;stroke-width:6"/>
+  <rect id="half" class="target" x="105" y="10" width="85" height="85"
+        style="fill:url(#bars);opacity:0.4;stroke:#f00;stroke-width:6"/>
+  <rect id="under" class="target" x="10" y="105" width="85" height="85"
+        style="fill:url(#bars);paint-order:stroke;stroke:#f00;stroke-width:10"/>
+  <rect id="over" class="target" x="105" y="105" width="85" height="85"
+        style="fill:url(#bars);stroke:#f00;stroke-width:10"/>
+</svg>

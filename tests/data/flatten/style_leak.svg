@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- The group gives the pattern fill and a red stroke to the target. The tile
+       content must not take the red stroke or the pattern fill from the group. -->
+  <defs>
+    <pattern id="tri" patternUnits="userSpaceOnUse" width="30" height="30">
+      <path d="M 5 25 L 15 5 L 25 25 Z"/>
+      <path d="M 0 0 L 30 30" style="stroke:#0a0;stroke-width:2"/>
+    </pattern>
+  </defs>
+  <g style="fill:url(#tri);stroke:#f00;stroke-width:4">
+    <rect id="target" class="target" x="20" y="20" width="160" height="160"/>
+  </g>
+</svg>

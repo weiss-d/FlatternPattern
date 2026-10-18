@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Filled content with no stroke, inside the tile box: no tile clip is needed. -->
+  <defs>
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="6" fill="#06c"/>
+      <rect x="1" y="1" width="4" height="4" fill="#c60"/>
+    </pattern>
+  </defs>
+  <rect id="target" class="target" x="10" y="10" width="180" height="180" fill="url(#dots)"/>
+</svg>

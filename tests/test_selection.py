@@ -3,7 +3,7 @@ import os
 
 import inkex
 import pytest
-from conftest import DATA
+from conftest import DATA, load
 
 import flatternpattern as fp
 
@@ -99,6 +99,14 @@ def test_report_does_not_add_ids(capsys):
     out = io.BytesIO()
     fp.FlatternPattern().run([SELECTION_SVG, "--id=root"], output=out)
     assert "Skipped a <text> element" in capsys.readouterr().err
+    texts = load(out.getvalue()).xpath("//svg:text")
+    assert [t.get("id") for t in texts] == ["label", "spanned", None]
+
+
+def test_report_without_change_writes_nothing(capsys):
+    out = io.BytesIO()
+    fp.FlatternPattern().run([SELECTION_SVG, "--id=label"], output=out)
+    assert "Skipped #label" in capsys.readouterr().err
     # inkex writes no output when the document does not change.
     assert out.getvalue() == b""
 
@@ -109,8 +117,10 @@ def test_run_without_selection_aborts(capsys):
     assert "Select one or more objects" in capsys.readouterr().err
 
 
-def test_run_reports_targets_and_skips(capsys):
-    fp.FlatternPattern().run([SELECTION_SVG, "--id=plain", "--id=label"], output=io.BytesIO())
-    err = capsys.readouterr().err
-    assert "Found 1 pattern paint(s)" in err
-    assert "Skipped #label" in err
+def test_run_flattens_and_reports_skips(capsys):
+    out = io.BytesIO()
+    fp.FlatternPattern().run([SELECTION_SVG, "--id=plain", "--id=label"], output=out)
+    assert "Skipped #label" in capsys.readouterr().err
+    doc = load(out.getvalue())
+    assert doc.getElementById("plain-flat") is not None
+    assert doc.getElementById("plain").style.get("fill") == "none"
