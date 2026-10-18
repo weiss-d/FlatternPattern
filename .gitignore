@@ -1,0 +1,20 @@
+*.local.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+tests/output/
+
+# Editors and OS
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
