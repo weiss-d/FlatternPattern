@@ -3,3 +3,32 @@ name = "flatternpattern"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = []
+
+# The extension itself uses only the inkex package that Inkscape bundles.
+# lxml, cssselect, tinycss2 and numpy let the bundled inkex run in the dev venv.
+[dependency-groups]
+dev = [
+    "pytest",
+    "pre-commit",
+    "lxml",
+    "cssselect",
+    "tinycss2",
+    "numpy",
+    "pillow",
+]
+
+[tool.pyright]
+extraPaths = ["/usr/share/inkscape/extensions"]
+
+# The extension runs on the Python that Inkscape bundles, so lint for 3.10.
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+# ruff format sets the line length. It does not split message strings.
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
