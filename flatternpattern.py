@@ -7,7 +7,7 @@ import inkex
 from inkex.styles import Style
 
 from fp_clipped import SHAPES, Part, flatten_element
-from fp_resolve import SkipError, resolve
+from fp_resolve import ResolvedPattern, SkipError, resolve
 from fp_svg import set_props
 from fp_tiling import TileLimitError, inkscape_view_differs, plan, stroke_region
 
@@ -165,39 +165,52 @@ def prepare(targets, viewport, limit: int, inkscape_obb: bool = False):
     Return (jobs, skips, empty). empty holds the targets whose pattern paints
     nothing. If all targets together need more than limit tiles, raise
     TileLimitError with a lower bound of the total. inkscape_obb goes to plan()."""
-    # One resolve for each pattern element. The value is a ResolvedPattern or the
-    # SkipError of the first try, so a broken pattern is not resolved again.
-    resolved: dict = {}
+    cache: dict = {}
     jobs, skips, empty = [], [], []
     used = 0
     for target in targets:
         try:
-            if target.pattern not in resolved:
-                try:
-                    resolved[target.pattern] = resolve(target.pattern)
-                except SkipError as err:
-                    resolved[target.pattern] = err
-            rp = resolved[target.pattern]
-            if isinstance(rp, SkipError):
-                raise rp
-            path = target.elem.path
-            bbox = path.bounding_box()
-            region = region_of(target, path, bbox, viewport) if rp.content and bbox else None
-            if (
-                region is None
-                or (tile_plan := plan(rp, bbox, region, viewport, limit - used, inkscape_obb))
-                is None
-            ):
-                empty.append(target)
-                continue
+            rp = resolve_once(cache, target.pattern)
+            job = plan_target(target, rp, viewport, limit - used, inkscape_obb)
         except SkipError as err:
             skips.append(Skip(target.elem, str(err)))
             continue
         except TileLimitError as err:
             raise TileLimitError(used + err.args[0]) from err
-        jobs.append(Job(target, Part(rp, tile_plan, region), bbox))
-        used += len(tile_plan.cells)
+        if job is None:
+            empty.append(target)
+        else:
+            jobs.append(job)
+            used += len(job.part.plan.cells)
     return jobs, skips, empty
+
+
+def resolve_once(cache: dict, pattern) -> ResolvedPattern:
+    """Resolve pattern, or raise its SkipError.
+
+    cache holds the ResolvedPattern or the SkipError of each pattern element, so
+    the function resolves each pattern only one time."""
+    if pattern not in cache:
+        try:
+            cache[pattern] = resolve(pattern)
+        except SkipError as err:
+            cache[pattern] = err
+    if isinstance(cache[pattern], SkipError):
+        raise cache[pattern]
+    return cache[pattern]
+
+
+def plan_target(target: Target, rp: ResolvedPattern, viewport, limit: int, inkscape_obb: bool):
+    """Return the Job for target, or None when its pattern paints nothing."""
+    path = target.elem.path
+    bbox = path.bounding_box()
+    if not rp.content or not bbox:
+        return None
+    region = region_of(target, path, bbox, viewport)
+    if region is None:
+        return None
+    tile_plan = plan(rp, bbox, region, viewport, limit, inkscape_obb)
+    return None if tile_plan is None else Job(target, Part(rp, tile_plan, region), bbox)
 
 
 def moved_elements(jobs) -> list:
