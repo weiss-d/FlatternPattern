@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   sodipodi:docname="inkscape_stock.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#111111"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.90867003"
+     inkscape:cx="372.52247"
+     inkscape:cy="437.45253"
+     inkscape:window-width="1920"
+     inkscape:window-height="1166"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#pattern6-7"
+       preserveAspectRatio="xMidYMid"
+       id="pattern1"
+       patternTransform="translate(221.78631,334.1806)" />
+    <pattern
+       patternUnits="userSpaceOnUse"
+       width="28.28"
+       height="23.44"
+       patternTransform="translate(190,350)"
+       preserveAspectRatio="xMidYMid"
+       style="fill:#000000"
+       id="pattern6-7"
+       inkscape:label="Decorative Paper"
+       inkscape:collect="always"
+       inkscape:isstock="true">
+      <path
+         style="paint-order:stroke markers fill;stop-color:#000000"
+         d="M 0,0        A 20,20 0,0,1 14.14,5.86        A 20,20 0,0,0 28.28,11.72        L 28.28, 23.44        A 20,20 0,0,1 14.14,17.58        A 20,20 0,0,0 0,11.72        L 0,0 "
+         id="path4-2"
+         sodipodi:nodetypes="cc" />
+    </pattern>
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#Polkadots-large"
+       preserveAspectRatio="xMidYMid"
+       id="pattern7"
+       patternTransform="scale(10)"
+       x="0"
+       y="0" />
+    <pattern
+       patternUnits="userSpaceOnUse"
+       width="10"
+       height="10"
+       patternTransform="translate(0,0) scale(10,10)"
+       preserveAspectRatio="xMidYMid"
+       style="fill:#000000"
+       id="Polkadots-large"
+       inkscape:stockid="Polka dots, large"
+       inkscape:label="Polka dots large"
+       inkscape:collect="always"
+       inkscape:isstock="true">
+      <circle
+         style="stroke:none"
+         cx="2.567"
+         cy="0.810"
+         r="0.45"
+         id="circle584" />
+      <circle
+         style="stroke:none"
+         cx="3.048"
+         cy="2.33"
+         r="0.45"
+         id="circle586" />
+      <circle
+         style="stroke:none"
+         cx="4.418"
+         cy="2.415"
+         r="0.45"
+         id="circle588" />
+      <circle
+         style="stroke:none"
+         cx="1.844"
+         cy="3.029"
+         r="0.45"
+         id="circle590" />
+      <circle
+         style="stroke:none"
+         cx="6.08"
+         cy="1.363"
+         r="0.45"
+         id="circle592" />
+      <circle
+         style="stroke:none"
+         cx="5.819"
+         cy="4.413"
+         r="0.45"
+         id="circle594" />
+      <circle
+         style="stroke:none"
+         cx="4.305"
+         cy="4.048"
+         r="0.45"
+         id="circle596" />
+      <circle
+         style="stroke:none"
+         cx="5.541"
+         cy="3.045"
+         r="0.45"
+         id="circle598" />
+      <circle
+         style="stroke:none"
+         cx="4.785"
+         cy="5.527"
+         r="0.45"
+         id="circle600" />
+      <circle
+         style="stroke:none"
+         cx="2.667"
+         cy="5.184"
+         r="0.45"
+         id="circle602" />
+      <circle
+         style="stroke:none"
+         cx="7.965"
+         cy="1.448"
+         r="0.45"
+         id="circle604" />
+      <circle
+         style="stroke:none"
+         cx="7.047"
+         cy="5.049"
+         r="0.45"
+         id="circle606" />
+      <circle
+         style="stroke:none"
+         cx="4.340"
+         cy="0.895"
+         r="0.45"
+         id="circle608" />
+      <circle
+         style="stroke:none"
+         cx="7.125"
+         cy="0.340"
+         r="0.45"
+         id="circle610" />
+      <circle
+         style="stroke:none"
+         cx="7.125"
+         cy="10.340"
+         r="0.45"
+         id="circle612" />
+      <circle
+         style="stroke:none"
+         cx="9.550"
+         cy="1.049"
+         r="0.45"
+         id="circle614" />
+      <circle
+         style="stroke:none"
+         cx="7.006"
+         cy="2.689"
+         r="0.45"
+         id="circle616" />
+      <circle
+         style="stroke:none"
+         cx="8.909"
+         cy="2.689"
+         r="0.45"
+         id="circle618" />
+      <circle
+         style="stroke:none"
+         cx="9.315"
+         cy="4.407"
+         r="0.45"
+         id="circle620" />
+      <circle
+         style="stroke:none"
+         cx="7.820"
+         cy="3.870"
+         r="0.45"
+         id="circle622" />
+      <circle
+         style="stroke:none"
+         cx="8.270"
+         cy="5.948"
+         r="0.45"
+         id="circle624" />
+      <circle
+         style="stroke:none"
+         cx="7.973"
+         cy="7.428"
+         r="0.45"
+         id="circle626" />
+      <circle
+         style="stroke:none"
+         cx="9.342"
+         cy="8.072"
+         r="0.45"
+         id="circle628" />
+      <circle
+         style="stroke:none"
+         cx="8.206"
+         cy="9.315"
+         r="0.45"
+         id="circle630" />
+      <circle
+         style="stroke:none"
+         cx="9.682"
+         cy="9.475"
+         r="0.45"
+         id="circle632" />
+      <circle
+         style="stroke:none"
+         cx="-0.318"
+         cy="9.475"
+         r="0.45"
+         id="circle634" />
+      <circle
+         style="stroke:none"
+         cx="9.688"
+         cy="6.186"
+         r="0.45"
+         id="circle636" />
+      <circle
+         style="stroke:none"
+         cx="-0.312"
+         cy="6.186"
+         r="0.45"
+         id="circle638" />
+      <circle
+         style="stroke:none"
+         cx="3.379"
+         cy="6.296"
+         r="0.45"
+         id="circle640" />
+      <circle
+         style="stroke:none"
+         cx="2.871"
+         cy="8.204"
+         r="0.45"
+         id="circle642" />
+      <circle
+         style="stroke:none"
+         cx="4.59"
+         cy="8.719"
+         r="0.45"
+         id="circle644" />
+      <circle
+         style="stroke:none"
+         cx="3.181"
+         cy="9.671"
+         r="0.45"
+         id="circle646" />
+      <circle
+         style="stroke:none"
+         cx="3.181"
+         cy="-0.329"
+         r="0.45"
+         id="circle648" />
+      <circle
+         style="stroke:none"
+         cx="5.734"
+         cy="7.315"
+         r="0.45"
+         id="circle650" />
+      <circle
+         style="stroke:none"
+         cx="6.707"
+         cy="6.513"
+         r="0.45"
+         id="circle652" />
+      <circle
+         style="stroke:none"
+         cx="5.730"
+         cy="9.670"
+         r="0.45"
+         id="circle654" />
+      <circle
+         style="stroke:none"
+         cx="5.730"
+         cy="-0.330"
+         r="0.45"
+         id="circle656" />
+      <circle
+         style="stroke:none"
+         cx="6.535"
+         cy="8.373"
+         r="0.45"
+         id="circle658" />
+      <circle
+         style="stroke:none"
+         cx="4.37"
+         cy="7.154"
+         r="0.45"
+         id="circle660" />
+      <circle
+         style="stroke:none"
+         cx="0.622"
+         cy="7.25"
+         r="0.45"
+         id="circle662" />
+      <circle
+         style="stroke:none"
+         cx="0.831"
+         cy="5.679"
+         r="0.45"
+         id="circle664" />
+      <circle
+         style="stroke:none"
+         cx="1.257"
+         cy="8.519"
+         r="0.45"
+         id="circle666" />
+      <circle
+         style="stroke:none"
+         cx="1.989"
+         cy="6.877"
+         r="0.45"
+         id="circle668" />
+      <circle
+         style="stroke:none"
+         cx="0.374"
+         cy="3.181"
+         r="0.45"
+         id="circle670" />
+      <circle
+         style="stroke:none"
+         cx="10.374"
+         cy="3.181"
+         r="0.45"
+         id="circle672" />
+      <circle
+         style="stroke:none"
+         cx="1.166"
+         cy="1.664"
+         r="0.45"
+         id="circle674" />
+      <circle
+         style="stroke:none"
+         cx="1.151"
+         cy="0.093"
+         r="0.45"
+         id="circle676" />
+      <circle
+         style="stroke:none"
+         cx="1.151"
+         cy="10.093"
+         r="0.45"
+         id="circle678" />
+      <circle
+         style="stroke:none"
+         cx="1.302"
+         cy="4.451"
+         r="0.45"
+         id="circle680" />
+      <circle
+         style="stroke:none"
+         cx="3.047"
+         cy="3.763"
+         r="0.45"
+         id="circle682" />
+    </pattern>
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#Checkerboard"
+       preserveAspectRatio="xMidYMid"
+       id="pattern5"
+       patternTransform="matrix(13.716333,6.1709093,-5.3994213,12.001515,60.726564,-52.704841)"
+       x="0"
+       y="0" />
+    <pattern
+       inkscape:collect="always"
+       style="fill:#000000"
+       patternUnits="userSpaceOnUse"
+       width="2"
+       height="2"
+       patternTransform="translate(0,0) scale(10,10)"
+       id="Checkerboard"
+       inkscape:stockid="Checkerboard"
+       preserveAspectRatio="xMidYMid"
+       inkscape:isstock="true"
+       inkscape:label="Checkerboard">
+      <rect
+         style="stroke:none"
+         x="0"
+         y="0"
+         width="1"
+         height="1"
+         id="rect209" />
+      <rect
+         style="stroke:none"
+         x="1"
+         y="1"
+         width="1"
+         height="1"
+         id="rect211" />
+    </pattern>
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#Strips1_1"
+       preserveAspectRatio="xMidYMid"
+       id="pattern3"
+       patternTransform="matrix(2,0,0,2,22.129412,14.267647)"
+       x="0"
+       y="0" />
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#Strips1_1"
+       preserveAspectRatio="xMidYMid"
+       id="pattern2"
+       patternTransform="scale(2)"
+       x="0"
+       y="0" />
+    <pattern
+       inkscape:collect="always"
+       patternUnits="userSpaceOnUse"
+       width="2"
+       height="10"
+       patternTransform="translate(0,0) scale(2,2)"
+       preserveAspectRatio="xMidYMid"
+       id="Strips1_1"
+       style="fill:#000000"
+       inkscape:stockid="Stripes 01 (1:1)"
+       inkscape:isstock="true"
+       inkscape:label="Stripes 01 (1:1)">
+      <rect
+         style="stroke:none"
+         x="0"
+         y="-0.5"
+         width="1"
+         height="11"
+         id="rect134" />
+    </pattern>
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:url(#pattern2);fill-rule:evenodd;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-miterlimit:4.11;paint-order:fill markers stroke"
+       id="stripes-plain"
+       width="60.855881"
+       height="55.90588"
+       x="26.205881"
+       y="35.232353"
+       class="target" />
+    <rect
+       style="fill:url(#pattern3);fill-rule:evenodd;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-miterlimit:4.11;paint-order:fill markers stroke"
+       id="stripes-moved"
+       width="62.135292"
+       height="57.90588"
+       x="105"
+       y="34.232353"
+       class="target" />
+    <ellipse
+       style="fill:url(#pattern5);fill-rule:evenodd;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-miterlimit:4.11;paint-order:fill markers stroke"
+       id="checker-rotated"
+       cx="56.63382"
+       cy="146.75294"
+       rx="31.42794"
+       ry="35.523529"
+       class="target" />
+    <path
+       sodipodi:type="star"
+       style="fill:url(#pattern7);fill-rule:evenodd;stroke:none;stroke-width:2;stroke-linecap:round;stroke-miterlimit:4.11;paint-order:fill markers stroke"
+       id="dots-star"
+       inkscape:flatsided="false"
+       sodipodi:sides="5"
+       sodipodi:cx="133.94118"
+       sodipodi:cy="144.13235"
+       sodipodi:r1="41.065174"
+       sodipodi:r2="20.532589"
+       sodipodi:arg1="0.78539816"
+       sodipodi:arg2="1.4137167"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 162.97864,173.16982 -25.82546,-8.75767 -21.8552,16.30954 0.34853,-27.26774 -22.264926,-15.7456 26.040856,-8.09473 8.09473,-26.04086 15.74561,22.26492 27.26774,-0.34852 -16.30954,21.8552 z"
+       inkscape:transform-center-x="1.9851278"
+       inkscape:transform-center-y="-1.9851278"
+       class="target" />
+    <rect
+       style="fill:url(#pattern1);fill-rule:evenodd;stroke-width:2;stroke-linecap:round;stroke-miterlimit:4.11;paint-order:fill markers stroke"
+       id="object-rotated"
+       width="144.42354"
+       height="55.90588"
+       x="58.283375"
+       y="194.41002"
+       transform="rotate(7.8964565)"
+       class="target" />
+  </g>
+</svg>

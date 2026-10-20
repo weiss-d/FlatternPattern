@@ -16,6 +16,14 @@ from fp_tiling import Tile, plan, tile_transform
 
 FLATTEN = os.path.join(DATA, "flatten")
 FIXTURES = sorted(f for f in os.listdir(FLATTEN) if f.endswith(".svg"))
+# Files made by hand in the Inkscape GUI.
+REAL = os.path.join(DATA, "real")
+REAL_FIXTURES = sorted(f for f in os.listdir(REAL) if f.endswith(".svg"))
+# The real files have thin lines in small tiles. At 96 dpi, Inkscape and rsvg
+# draw the pattern tile as a soft image, but the flattened copies stay sharp.
+# A larger render scale makes that difference small.
+REAL_SCALE = 4
+REAL_TILE_LIMIT = "--tile_limit=20000"
 # A pixel differs when one channel differs by more than this (of 255).
 PIXEL_TOLERANCE = 64
 # The test fails when more than this part of the pixels differ.
@@ -226,6 +234,20 @@ def test_report_notes_inkscape_view_only_without_option(capsys):
 @pytest.mark.parametrize("name", known_differences(RSVG_DIFFERS))
 def test_rsvg_renders_output_like_input(name, tmp_path):
     compare(name, tmp_path, render_rsvg)
+
+
+@pytest.mark.inkscape
+@pytest.mark.parametrize("name", REAL_FIXTURES)
+def test_inkscape_renders_real_file_like_input(name, tmp_path):
+    path = os.path.join(REAL, name)
+    compare(path, tmp_path, render_inkscape, REAL_TILE_LIMIT, scale=REAL_SCALE)
+
+
+@pytest.mark.skipif(shutil.which("rsvg-convert") is None, reason="rsvg-convert is not on PATH")
+@pytest.mark.parametrize("name", REAL_FIXTURES)
+def test_rsvg_renders_real_file_like_input(name, tmp_path):
+    path = os.path.join(REAL, name)
+    compare(path, tmp_path, render_rsvg, REAL_TILE_LIMIT, scale=REAL_SCALE)
 
 
 # Pattern strokes
