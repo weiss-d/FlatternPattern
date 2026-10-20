@@ -77,6 +77,9 @@ GEOMETRY = {
     "pathLength",
 }
 MARKERS = ("marker-start", "marker-mid", "marker-end")
+# Content with one of these properties can paint outside its hull, so it always
+# gets the tile clip. A non-scaling stroke has its width in screen units.
+EFFECTS = ("filter", "vector-effect", *MARKERS)
 # The default paint order.
 LAYERS = ("fill", "stroke", "markers")
 # The properties that set the stroke area. The stroke mask copies them.
@@ -139,32 +142,43 @@ def needs_tile_clip(template, tile, viewport) -> bool:
     edge show a thin light line there in some renderers."""
     points = []
     for elem in template.iter():
-        if not isinstance(elem.tag, str):
-            continue
-        if elem.TAG in UNBOUNDED:
+        hull = painted_hull(elem, viewport)
+        if hull is None:
             return True
-        style = elem.style
-        # A non-scaling stroke has its width in screen units, not in tile units.
-        effects = ("filter", "vector-effect", *MARKERS)
-        if any(style.get(p, "none") != "none" for p in effects):
-            return True
-        if not isinstance(elem, SHAPES):
-            continue  # groups and other containers paint nothing themselves
-        try:
-            hull = stroke_hull(elem.path, style, viewport)
-        except (SkipError, ValueError):
-            return True
-        transform = transform_within(elem, template)
-        points += [tuple(transform.apply_to_point(p)) for p in hull]
+        if hull:
+            transform = transform_within(elem, template)
+            points += [tuple(transform.apply_to_point(p)) for p in hull]
     box = box_of(points)
-    if box is None:
-        return False
+    return box is not None and not inside(box, tile)
+
+
+def painted_hull(elem, viewport) -> list | None:
+    """Return the hull points of the area that elem paints, in its own coordinates.
+
+    The list is empty when elem paints nothing itself, for example a group. The
+    function returns None when the painted area is not known."""
+    if not isinstance(elem.tag, str):
+        return []  # comments and processing instructions
+    if elem.TAG in UNBOUNDED:
+        return None
+    if any(elem.style.get(p, "none") != "none" for p in EFFECTS):
+        return None
+    if not isinstance(elem, SHAPES):
+        return []
+    try:
+        return stroke_hull(elem.path, elem.style, viewport)
+    except (SkipError, ValueError):
+        return None
+
+
+def inside(box: inkex.BoundingBox, tile) -> bool:
+    """Return True when box is inside the tile box, with a small tolerance."""
     margin = 1e-9 * max(tile.width, tile.height)
     return (
-        box.left < tile.x - margin
-        or box.top < tile.y - margin
-        or box.right > tile.x + tile.width + margin
-        or box.bottom > tile.y + tile.height + margin
+        box.left >= tile.x - margin
+        and box.top >= tile.y - margin
+        and box.right <= tile.x + tile.width + margin
+        and box.bottom <= tile.y + tile.height + margin
     )
 
 
