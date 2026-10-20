@@ -311,26 +311,38 @@ def plan(
     if tile is None:
         return None
     content = content_transform(rp, tile, bbox)
-    if content is None:
+    if content is None or has_no_area(rp.transform, region):
         return None
-    t = rp.transform
-    det = abs(t.a * t.d - t.b * t.c)
-    if det == 0:
-        return None  # a patternTransform with no area paints nothing
+    return TilePlan(tile, content, rp.transform, find_cells(tile, rp.transform, region, limit))
+
+
+def area_scale(transform: inkex.Transform) -> float:
+    """Return the factor by which transform multiplies an area."""
+    return abs(transform.a * transform.d - transform.b * transform.c)
+
+
+def has_no_area(transform: inkex.Transform, region: inkex.BoundingBox) -> bool:
+    """Return True when the patternTransform or the region has no area. Then the
+    pattern paints nothing."""
     w, h = region.width, region.height
-    if min(w, h) <= EPS * max(w, h):
-        # A region with no area (for example the box of a straight line) shows no
-        # paint. It also gives no lower bound below, so cells() could scan forever.
-        return None
+    # A region with no area (for example the box of a straight line) also gives
+    # no lower bound in find_cells(), so cells() could scan forever.
+    return area_scale(transform) == 0 or min(w, h) <= EPS * max(w, h)
+
+
+def find_cells(tile: Tile, transform, region, limit: int) -> list[tuple[int, int]]:
+    """Return the cells that cover region. Raise TileLimitError when there are
+    more than limit, before the scan when the area alone gives too many."""
     # The tiles cover the region, so their count is at least this. A very small
     # tile or patternTransform gives a very large count, so cap it before ceil().
-    least = math.ceil(min(w * h / (det * tile.width * tile.height), 1e18) - EPS)
+    tile_area = area_scale(transform) * tile.width * tile.height
+    least = math.ceil(min(region.width * region.height / tile_area, 1e18) - EPS)
     if least > limit:
         raise TileLimitError(least)
-    found = list(itertools.islice(cells(tile, t, region), limit + 1))
+    found = list(itertools.islice(cells(tile, transform, region), limit + 1))
     if len(found) > limit:
         raise TileLimitError(len(found))
-    return TilePlan(tile, content, t, found)
+    return found
 
 
 def tile_transform(tile_plan: TilePlan, i: int, j: int) -> inkex.Transform:
