@@ -17,9 +17,9 @@
                    gui-description="Inkscape 1.4 shows patterns with objectBoundingBox units at another place than browsers. Select this option to keep the Inkscape view.">false</param>
         </page>
         <page name="help" gui-text="Help">
-            <label xml:space="preserve">FlatternPattern replaces a pattern fill with real geometry.
+            <label xml:space="preserve">FlatternPattern replaces a pattern fill or a pattern stroke with real geometry.
 
-Clipped copies: the extension puts one copy of the tile content for each tile. A clip path with the shape of the object hides the rest. The result is exact and you can edit it.
+Clipped copies: the extension puts one copy of the tile content for each tile. A clip path with the shape of the object hides the rest. For a stroke, a mask with the shape of the stroke hides the rest. The result is exact and you can edit it.
 
 Merged outlines: the extension converts strokes to paths and makes one filled path. Use this mode for stencils, plotters and cutters. This mode starts Inkscape in the background and needs more time.
 
@@ -27,6 +27,7 @@ The extension skips these objects and shows a message:
 - text (use Object to Path first)
 - clones (unlink them first)
 - hatch fills and mesh gradients
+- pattern strokes that do not scale with the object (vector-effect)
 
 If the number of tiles is more than the maximum, the extension stops and changes nothing.</label>
         </page>

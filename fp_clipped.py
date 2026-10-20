@@ -1,5 +1,5 @@
 """Clipped-copies output: one copy of the tile content for each tile, clipped
-to the tile box and to the shape of the target.
+to the tile box and to the fill or stroke area of the target.
 
 The output replaces the target at the same place in the document:
 
@@ -9,20 +9,25 @@ The output replaces the target at the same place in the document:
           <g transform="C"> styled copies of the tile content </g>
         </g>
       </g>
-      <path id="ID" ... fill:none />                         the target
+      <g id="ID-stroke" mask="url(#ID-stroke-mask)" style="RESET; opacity">
+        ... the same, with the clip ID-stroke-tile
+      </g>
+      <path id="ID" ... fill:none; stroke:none />           the target
     </g>
 
-The tile clip is only there when the content can show outside the tile box.
+The fill group is only there for a pattern fill, and the stroke group only for
+a pattern stroke. Each group goes at the place that paint-order gives. The tile
+clip is only there when the content can show outside the tile box.
 """
 
 from copy import deepcopy
+from typing import NamedTuple
 
 import inkex
 
-from fp_resolve import SVG_NS, ResolvedPattern
+from fp_resolve import SVG_NS, ResolvedPattern, SkipError
 from fp_svg import (
     RESET_STYLE,
-    fmt_path,
     fmt_transform,
     num,
     set_props,
@@ -30,7 +35,7 @@ from fp_svg import (
     take_props,
     unique_id,
 )
-from fp_tiling import TilePlan, tile_transform
+from fp_tiling import TilePlan, box_of, stroke_hull, stroke_width, tile_transform
 
 # The properties that apply to the target as a whole, so they move to the group,
 # with the initial values that stop a stylesheet rule on the target.
@@ -42,8 +47,55 @@ GROUP_PROPS = {
     "display": "inline",
 }
 # Content of these kinds can go past its bounding box, so it always gets the tile clip.
-UNBOUNDED = {"text", "flowRoot", "image", "use", "foreignObject", "switch"}
+UNBOUNDED = {"text", "flowRoot", "image", "use", "foreignObject", "switch", "svg"}
+# The elements that paint their own path. inkex.Polygon is a Polyline.
+SHAPES = (
+    inkex.PathElement,
+    inkex.Rectangle,
+    inkex.Circle,
+    inkex.Ellipse,
+    inkex.Line,
+    inkex.Polyline,
+)
+# The attributes that give the geometry of a shape.
+GEOMETRY = {
+    "d",
+    "x",
+    "y",
+    "width",
+    "height",
+    "rx",
+    "ry",
+    "cx",
+    "cy",
+    "r",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "points",
+    "pathLength",
+}
 MARKERS = ("marker-start", "marker-mid", "marker-end")
+# The default paint order.
+LAYERS = ("fill", "stroke", "markers")
+# The properties that set the stroke area. The stroke mask copies them.
+STROKE_SHAPE = (
+    "stroke-width",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "stroke-miterlimit",
+    "stroke-dasharray",
+    "stroke-dashoffset",
+)
+
+
+class Part(NamedTuple):
+    """The tiles for one paint of a target."""
+
+    pattern: ResolvedPattern
+    plan: TilePlan
+    region: inkex.BoundingBox  # the area that the tiles cover: the fill or stroke box
 
 
 def styled_copy(original, reset: bool):
@@ -66,18 +118,45 @@ def styled_copy(original, reset: bool):
     return copy
 
 
-def needs_tile_clip(template, tile) -> bool:
-    """Return True when the content can show outside the tile box."""
-    for elem in template.iterdescendants():
+def transform_within(elem, top) -> inkex.Transform:
+    """Return the transform from the coordinates of elem to the parent of top."""
+    transform = inkex.Transform()
+    node = elem
+    while node is not None:
+        # Not node.transform: inkex writes that value back with 6 significant digits.
+        transform = inkex.Transform(node.attrib.get("transform")) @ transform
+        if node is top:
+            break
+        node = node.getparent()
+    return transform
+
+
+def needs_tile_clip(template, tile, viewport) -> bool:
+    """Return True when the content can show outside the tile box.
+
+    The check uses the painted area of each shape, with its stroke. A clip that
+    is not necessary costs more than time: two clipped tiles that meet at an
+    edge show a thin light line there in some renderers."""
+    points = []
+    for elem in template.iter():
         if not isinstance(elem.tag, str):
             continue
         if elem.TAG in UNBOUNDED:
             return True
         style = elem.style
-        # The bounding box does not include strokes, markers or filter effects.
-        if any(style.get(p, "none") != "none" for p in ("stroke", "filter", *MARKERS)):
+        # A non-scaling stroke has its width in screen units, not in tile units.
+        effects = ("filter", "vector-effect", *MARKERS)
+        if any(style.get(p, "none") != "none" for p in effects):
             return True
-    box = template.bounding_box()
+        if not isinstance(elem, SHAPES):
+            continue  # groups and other containers paint nothing themselves
+        try:
+            hull = stroke_hull(elem.path, style, viewport)
+        except (SkipError, ValueError):
+            return True
+        transform = transform_within(elem, template)
+        points += [tuple(transform.apply_to_point(p)) for p in hull]
+    box = box_of(points)
     if box is None:
         return False
     margin = 1e-9 * max(tile.width, tile.height)
@@ -87,14 +166,6 @@ def needs_tile_clip(template, tile) -> bool:
         or box.right > tile.x + tile.width + margin
         or box.bottom > tile.y + tile.height + margin
     )
-
-
-def stroke_first(elem) -> bool:
-    """Return True when paint-order paints the stroke before the fill."""
-    order = str(elem.specified_style().get("paint-order", "normal")).split()
-    if "stroke" not in order:
-        return False
-    return "fill" not in order or order.index("stroke") < order.index("fill")
 
 
 def add_clip(svg, wanted_id: str, child):
@@ -113,64 +184,160 @@ def path_element(d: str):
     return elem
 
 
+def geometry_copy(elem):
+    """Return a new element with the tag and the geometry attributes of elem only.
+
+    The renderer makes the outline of the copy in the same way as for elem. Thus
+    the clip and the stroke mask match elem, and the dashes start at the same point."""
+    copy = type(elem)()
+    for name in GEOMETRY.intersection(elem.attrib):
+        copy.attrib[name] = elem.attrib[name]
+    return copy
+
+
 def tile_clip(svg, wanted_id: str, tile):
     x0, y0, x1, y1 = tile.x, tile.y, tile.x + tile.width, tile.y + tile.height
     box = path_element(f"M {num(x0)} {num(y0)} H {num(x1)} V {num(y1)} H {num(x0)} Z")
     return add_clip(svg, wanted_id, box)
 
 
-def flatten_fill(elem, rp: ResolvedPattern, tile_plan: TilePlan):
-    """Replace the pattern fill of elem with clipped copies of the tile content."""
-    svg = elem.root
-    eid = elem.get_id()
-    spec = elem.specified_style()
+def paint_order(spec) -> list[str]:
+    """Return "fill", "stroke" and "markers" in the order that the specified style
+    spec paints them."""
+    words = str(spec.get("paint-order", "normal")).split()
+    first = [w for w in words if w in LAYERS]
+    return first + [w for w in LAYERS if w not in first]
 
-    group = inkex.Group()
-    group.set("id", unique_id(svg, f"{eid}-flat"))
-    elem.addprevious(group)
-    set_raw(group, "transform", elem.attrib.pop("transform", None))
-    set_props(group, take_props(elem, GROUP_PROPS))
 
-    shape = path_element(fmt_path(elem.path))
-    set_props(shape, {"clip-rule": str(spec.get("fill-rule", "nonzero"))})
-    fill = inkex.Group()
-    fill.set("id", unique_id(svg, f"{eid}-fill"))
-    fill.clip = add_clip(svg, f"{eid}-shape", shape)
-    fill_style = dict(RESET_STYLE)
-    if (opacity := str(spec.get("fill-opacity", "1"))) not in ("1", "1.0"):
-        fill_style["opacity"] = opacity
+def paint_style(spec, prop: str) -> dict:
+    """Return the style of the group that holds the tiles of prop ("fill" or "stroke")."""
+    style = dict(RESET_STYLE)
+    if (opacity := str(spec.get(f"{prop}-opacity", "1"))) not in ("1", "1.0"):
+        style["opacity"] = opacity
     if str(spec.get("visibility", "visible")) != "visible":
-        # A hidden target paints no fill. RESET_STYLE makes the content visible,
-        # so hide the whole fill group.
-        fill_style["display"] = "none"
-    set_props(fill, fill_style)
-    group.append(fill)
+        # A hidden target paints nothing. RESET_STYLE makes the content visible,
+        # so hide the whole group.
+        style["display"] = "none"
+    return style
 
+
+def tile_group(svg, group_id: str, clip_id: str, part: Part, reset: bool):
+    """Make a group with one copy of the tile content for each tile of part.
+    reset goes to styled_copy()."""
+    group = inkex.Group()
+    group.set("id", unique_id(svg, group_id))
     template = inkex.Group()
-    set_raw(template, "transform", fmt_transform(tile_plan.content))
-    has_stylesheet = bool(svg.xpath("//svg:style"))
-    for original in rp.content:
-        template.append(styled_copy(original, reset=has_stylesheet))
-    # bounding_box() needs the template in the document, so add it for the check only.
-    fill.append(template)
+    set_raw(template, "transform", fmt_transform(part.plan.content))
+    for original in part.pattern.content:
+        template.append(styled_copy(original, reset))
+    viewport = (svg.viewbox_width, svg.viewbox_height)
     clip = (
-        tile_clip(svg, f"{eid}-tile", tile_plan.tile)
-        if needs_tile_clip(template, tile_plan.tile)
+        tile_clip(svg, clip_id, part.plan.tile)
+        if needs_tile_clip(template, part.plan.tile, viewport)
         else None
     )
-    fill.remove(template)
 
-    for i, j in tile_plan.cells:
+    for i, j in part.plan.cells:
         cell = inkex.Group()
-        set_raw(cell, "transform", fmt_transform(tile_transform(tile_plan, i, j)))
+        set_raw(cell, "transform", fmt_transform(tile_transform(part.plan, i, j)))
         if clip is not None:
             cell.clip = clip
         cell.append(deepcopy(template))
-        fill.append(cell)
-
-    set_props(elem, {"fill": "none"})
-    if stroke_first(elem):
-        group.insert(0, elem)  # the stroke paints below the fill
-    else:
-        group.append(elem)
+        group.append(cell)
     return group
+
+
+def stroke_mask(svg, eid: str, shape, spec, region: inkex.BoundingBox):
+    """Add a mask that shows the stroke area of the target and return the mask.
+
+    The mask holds shape, a geometry copy of the target, with a white stroke. The
+    mask is in the defs, where em and % can give another width. Thus the stroke
+    width goes into the mask in user units."""
+    stroke = {p: str(spec[p]) for p in STROKE_SHAPE if p in spec}
+    stroke["stroke-width"] = num(stroke_width(spec, (svg.viewbox_width, svg.viewbox_height)))
+    set_props(shape, {**RESET_STYLE, "fill": "none", "stroke": "#ffffff", **stroke})
+    mask = inkex.Mask()
+    mask.set("id", unique_id(svg, f"{eid}-stroke-mask"))
+    mask.set("maskUnits", "userSpaceOnUse")
+    mask.set("x", num(region.left))
+    mask.set("y", num(region.top))
+    mask.set("width", num(region.width))
+    mask.set("height", num(region.height))
+    mask.append(shape)
+    svg.defs.append(mask)
+    return mask
+
+
+def flatten_element(elem, fill: Part | None, stroke: Part | None):
+    """Replace the pattern fill and the pattern stroke of elem with clipped copies
+    of the tile content. fill or stroke is None when that paint stays on elem."""
+    svg = elem.root
+    spec = elem.specified_style()
+    reset = bool(svg.xpath("//svg:style"))
+    group = output_group(elem)
+    layers = {}
+    if fill is not None:
+        layers["fill"] = fill_layer(elem, spec, fill, reset)
+    if stroke is not None:
+        layers["stroke"] = stroke_layer(elem, spec, stroke, reset)
+    set_props(elem, dict.fromkeys(layers, "none"))
+
+    order = paint_order(spec)
+    if (markers := marker_layer(elem, spec, order, layers)) is not None:
+        layers["markers"] = markers
+    # elem paints its other layers and goes at the place of the first one.
+    for layer in order:
+        if layer in layers:
+            group.append(layers[layer])
+        elif elem.getparent() is not group:
+            group.append(elem)
+    return group
+
+
+def output_group(elem):
+    """Put a new group at the place of elem and return it. The transform and the
+    GROUP_PROPS of elem move to the group."""
+    group = inkex.Group()
+    group.set("id", unique_id(elem.root, f"{elem.get_id()}-flat"))
+    elem.addprevious(group)
+    set_raw(group, "transform", elem.attrib.pop("transform", None))
+    set_props(group, take_props(elem, GROUP_PROPS))
+    return group
+
+
+def fill_layer(elem, spec, part: Part, reset: bool):
+    """Return the tiles of the fill, clipped to the shape of elem."""
+    svg, eid = elem.root, elem.get_id()
+    tiles = tile_group(svg, f"{eid}-fill", f"{eid}-tile", part, reset)
+    shape = geometry_copy(elem)
+    set_props(shape, {"clip-rule": str(spec.get("fill-rule", "nonzero"))})
+    tiles.clip = add_clip(svg, f"{eid}-shape", shape)
+    set_props(tiles, paint_style(spec, "fill"))
+    return tiles
+
+
+def stroke_layer(elem, spec, part: Part, reset: bool):
+    """Return the tiles of the stroke, masked to the stroke area of elem."""
+    svg, eid = elem.root, elem.get_id()
+    tiles = tile_group(svg, f"{eid}-stroke", f"{eid}-stroke-tile", part, reset)
+    mask = stroke_mask(svg, eid, geometry_copy(elem), spec, part.region)
+    set_props(tiles, {**paint_style(spec, "stroke"), "mask": f"url(#{mask.get_id()})"})
+    return tiles
+
+
+def marker_layer(elem, spec, order: list[str], layers: dict):
+    """Return a copy of elem with only its markers, or None when elem can keep them.
+
+    elem goes at the place of its first own layer. When a pattern layer paints
+    between that place and the markers, the markers must move to the copy."""
+    own = order.index(next(layer for layer in order if layer not in layers))
+    between = any(own < order.index(layer) < order.index("markers") for layer in layers)
+    if not between or all(spec.get(m, "none") == "none" for m in MARKERS):
+        return None
+    markers = geometry_copy(elem)
+    markers.set("id", unique_id(elem.root, f"{elem.get_id()}-markers"))
+    # stroke-width scales markers with markerUnits="strokeWidth".
+    shown = {p: str(spec[p]) for p in (*MARKERS, "stroke-width") if p in spec}
+    set_props(markers, {"fill": "none", "stroke": "none", **shown})
+    set_props(elem, dict.fromkeys(MARKERS, "none"))
+    return markers

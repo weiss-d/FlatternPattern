@@ -11,7 +11,7 @@ from typing import NamedTuple
 import inkex
 from inkex.units import CONVERSIONS
 
-from fp_resolve import Length, ResolvedPattern, SkipError
+from fp_resolve import Length, ResolvedPattern, SkipError, parse_length
 
 # CSS default font size. The extension does not read the font of the pattern.
 FONT_UNITS = {"em": 16.0, "ex": 8.0}
@@ -130,6 +130,117 @@ def inkscape_view_differs(rp: ResolvedPattern, tile: Tile, bbox: inkex.BoundingB
     return rp.units == "objectBoundingBox" and (
         off_grid(bbox.left, tile.width) or off_grid(bbox.top, tile.height)
     )
+
+
+def stroke_width(style, viewport: tuple[float, float]) -> float:
+    """Return the stroke width of style in user units.
+
+    A percentage refers to the normalized diagonal of the root viewport. em and
+    ex refer to the font-size of style."""
+    text = str(style.get("stroke-width", "1")).strip()
+    try:
+        length = parse_length(text)
+    except ValueError:
+        raise SkipError(f"The stroke width {text!r} is not a valid length.") from None
+    if length.value < 0:
+        raise SkipError(f"The stroke width {text!r} is negative.")
+    if length.unit in FONT_UNITS:
+        return length.value * font_size(style) * FONT_UNITS[length.unit] / FONT_UNITS["em"]
+    diagonal = math.hypot(*viewport) / math.sqrt(2)
+    return to_user(length, "userSpaceOnUse", diagonal, diagonal)
+
+
+def font_size(style) -> float:
+    """Return the font-size of style in user units.
+
+    A relative font-size (%, em, ex or a keyword) gives the CSS default, 16."""
+    try:
+        length = parse_length(str(style.get("font-size", "16")).strip())
+    except ValueError:
+        return FONT_UNITS["em"]
+    if length.unit in ("%", *FONT_UNITS):
+        return FONT_UNITS["em"]
+    return to_user(length, "userSpaceOnUse", 0, 0)
+
+
+def stroke_region(path: inkex.Path, style, viewport) -> inkex.BoundingBox | None:
+    """Return a box that holds the stroke of path, or None when the stroke paints
+    nothing (a zero width, or a path with no segments). See stroke_hull()."""
+    if stroke_width(style, viewport) == 0:
+        return None
+    return box_of(stroke_hull(path, style, viewport))
+
+
+def box_of(points) -> inkex.BoundingBox | None:
+    """Return the bounding box of points, or None when there are no points."""
+    if not points:
+        return None
+    xs, ys = [p[0] for p in points], [p[1] for p in points]
+    return inkex.BoundingBox((min(xs), max(xs)), (min(ys), max(ys)))
+
+
+def cap_reach(style) -> float:
+    """Return how far a line cap goes past the end of the path, in half stroke widths."""
+    return {"round": 1.0, "square": math.sqrt(2)}.get(str(style.get("stroke-linecap", "butt")), 0.0)
+
+
+def join_reach(style) -> float:
+    """Return how far a join can go from its vertex, in half stroke widths."""
+    if str(style.get("stroke-linejoin", "miter")) not in ("miter", "miter-clip", "arcs"):
+        return 1.0  # round and bevel joins stay inside a circle around the vertex
+    try:
+        return max(1.0, float(style.get("stroke-miterlimit", "4")))
+    except ValueError:
+        return 4.0
+
+
+def stroke_hull(path: inkex.Path, style, viewport) -> list[tuple[float, float]]:
+    """Return points in the coordinates of path. Their bounding box holds the
+    painted area of path: the fill area, and the stroke when stroke is not none.
+
+    A straight segment gives the exact corners of its stroke. Curves, joins and
+    caps give a larger box, so the result can be larger than the stroke."""
+    stroked = str(style.get("stroke", "none")) != "none"
+    half = stroke_width(style, viewport) / 2 if stroked else 0.0
+    dashed = str(style.get("stroke-dasharray", "none")) not in ("none", "")
+    cap, join = half * cap_reach(style), half * join_reach(style)
+    return [
+        point for sub in path.to_superpath() for point in subpath_hull(sub, half, cap, join, dashed)
+    ]
+
+
+def square(p, r: float) -> list[tuple[float, float]]:
+    """Return the corners of the square with the center p and the half side r."""
+    return [(p[0] + dx, p[1] + dy) for dx in (-r, r) for dy in (-r, r)]
+
+
+def subpath_hull(sub, half: float, cap: float, join: float, dashed: bool) -> list:
+    """Return the hull points of one subpath of a superpath (see stroke_hull()).
+
+    half is half the stroke width. cap and join are the reach of the caps and joins."""
+    points = []
+    for a, b in itertools.pairwise(sub):
+        controls = (a[1], a[2], b[0], b[1])
+        points += segment_hull(*controls, half)
+        if dashed:
+            # Each dash has caps, at any place along the segment.
+            points += [q for p in controls for q in square(p, cap)]
+    points += [q for node in sub[1:-1] for q in square(node[1], join)]
+    # A closed subpath has a join at its start, an open one has caps.
+    ends = [sub[0][1], sub[-1][1]]
+    reach = max(cap, join if ends[0] == ends[1] else 0.0)
+    return points + [q for p in ends for q in square(p, reach)]
+
+
+def segment_hull(p0, c1, c2, p3, half: float) -> list:
+    """Return points whose bounding box holds the stroke of one cubic segment, without
+    caps and joins. A straight segment gives the exact corners of its stroke."""
+    length = math.dist(p0, p3)
+    if c1 == p0 and c2 == p3 and length > 0:
+        nx, ny = (p0[1] - p3[1]) / length * half, (p3[0] - p0[0]) / length * half
+        return [(p[0] + s * nx, p[1] + s * ny) for p in (p0, p3) for s in (-1, 1)]
+    # A curve stays inside the hull of its control points.
+    return [q for p in (p0, c1, c2, p3) for q in square(p, half)]
 
 
 def corners(box: inkex.BoundingBox) -> list[tuple[float, float]]:

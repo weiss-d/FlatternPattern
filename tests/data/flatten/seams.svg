@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- 45 degree stripes. The top stripe stays inside the tile, so it needs no
+       tile clip. The bottom stripe goes past the tile edge, so the tile clip cuts it. -->
+  <defs>
+    <pattern id="inside" patternUnits="userSpaceOnUse" width="8" height="8"
+             patternTransform="rotate(45)">
+      <path d="M 0 4 H 8" stroke="#c00" stroke-width="3"/>
+    </pattern>
+    <pattern id="across" patternUnits="userSpaceOnUse" width="8" height="8"
+             patternTransform="rotate(45)">
+      <path d="M -2 4 H 10" stroke="#c00" stroke-width="3"/>
+    </pattern>
+  </defs>
+  <rect id="inside-tile" class="target" x="10" y="10" width="180" height="85" fill="url(#inside)"/>
+  <rect id="across-tile" class="target" x="10" y="105" width="180" height="85" fill="url(#across)"/>
+</svg>

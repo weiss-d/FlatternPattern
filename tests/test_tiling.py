@@ -288,3 +288,108 @@ def test_plan_small_values_are_not_zero():
 def test_plan_singular_transform_paints_nothing():
     flat = rp(transform=inkex.Transform(scale=(1, 0)))
     assert ft.plan(flat, BBOX, BBOX, VIEWPORT, limit=100) is None
+
+
+# Stroke area
+
+
+@pytest.mark.parametrize(
+    ("width", "expected"),
+    [("3", 3.0), ("3px", 3.0), ("2mm", 7.559055), ("10%", 15.811388)],
+)
+def test_stroke_width_in_user_units(width, expected):
+    # 10 % of the normalized diagonal of 200 x 100: hypot(200, 100) / sqrt(2) / 10.
+    assert ft.stroke_width(inkex.Style(stroke_width=width), VIEWPORT) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("width", ["abc", "-1"])
+def test_stroke_width_invalid_skips(width):
+    with pytest.raises(SkipError):
+        ft.stroke_width(inkex.Style(stroke_width=width), VIEWPORT)
+
+
+RECT = inkex.Path("M 10 20 H 50 V 40 H 10 Z")  # the path of BBOX
+
+
+@pytest.mark.parametrize(
+    ("props", "pad"),
+    [
+        ({}, 8.0),  # miter joins with the miter limit 4
+        ({"stroke_linejoin": "round"}, 2.0),
+        ({"stroke_miterlimit": "10"}, 20.0),
+    ],
+)
+def test_stroke_region_pads_corners(props, pad):
+    region = ft.stroke_region(RECT, inkex.Style(stroke="#000", stroke_width="4", **props), VIEWPORT)
+    assert (region.left, region.top) == pytest.approx((10 - pad, 20 - pad))
+    assert (region.right, region.bottom) == pytest.approx((50 + pad, 40 + pad))
+
+
+def test_stroke_region_of_butt_line_is_exact():
+    line = inkex.Path("M 10 30 H 50")
+    region = ft.stroke_region(line, inkex.Style(stroke="#000", stroke_width="4"), VIEWPORT)
+    assert (region.left, region.top, region.right, region.bottom) == pytest.approx((10, 28, 50, 32))
+
+
+def test_stroke_region_zero_width_paints_nothing():
+    style = inkex.Style(stroke="#000", stroke_width="0")
+    assert ft.stroke_region(RECT, style, VIEWPORT) is None
+
+
+def hull_box(d, **props):
+    points = ft.stroke_hull(inkex.Path(d), inkex.Style(**props), VIEWPORT)
+    xs, ys = [p[0] for p in points], [p[1] for p in points]
+    return pytest.approx((min(xs), min(ys), max(xs), max(ys)))
+
+
+def test_stroke_hull_butt_line_is_exact():
+    # The stroke of a tile stripe stays inside the tile, so it needs no tile clip.
+    assert hull_box("M 0 4 H 8", stroke="#000", stroke_width="3") == (0, 2.5, 8, 5.5)
+
+
+def test_stroke_hull_round_caps_go_past_the_ends():
+    box = hull_box("M 0 4 H 8", stroke="#000", stroke_width="3", stroke_linecap="round")
+    assert box == (-1.5, 2.5, 9.5, 5.5)
+
+
+def test_stroke_hull_diagonal_line_is_exact():
+    h = 1 / 2**0.5  # half the width 2, along the normal (-1, 1) / sqrt(2)
+    assert hull_box("M 0 0 L 10 10", stroke="#000", stroke_width="2") == (-h, -h, 10 + h, 10 + h)
+
+
+def test_stroke_hull_miter_join_uses_miter_limit():
+    box = hull_box("M 0 0 L 10 0 L 10 10", stroke="#000", stroke_width="2")
+    assert box == (-0.0, -4, 14, 10)
+
+
+def test_stroke_hull_closed_path_has_join_at_start():
+    box = hull_box("M 0 0 H 10 V 10 Z", stroke="#000", stroke_width="2", stroke_linejoin="round")
+    assert box == (-1, -1, 11, 11)
+
+
+def test_stroke_hull_curve_uses_control_points():
+    box = hull_box("M 0 0 C 0 10 10 10 10 0", stroke="#000", stroke_width="2")
+    assert box == (-1, -1, 11, 11)
+
+
+def test_stroke_hull_dash_caps_can_be_anywhere():
+    # Square caps on a curve: without dashes, only the two ends get caps.
+    props = {"stroke": "#000", "stroke_width": "2", "stroke_linecap": "square"}
+    plain = hull_box("M 0 0 C 0 10 10 10 10 0", **props)
+    dashed = hull_box("M 0 0 C 0 10 10 10 10 0", stroke_dasharray="3 2", **props)
+    r = 2**0.5
+    assert plain == (-r, -r, 10 + r, 11)
+    assert dashed == (-r, -r, 10 + r, 10 + r)
+
+
+def test_stroke_hull_without_stroke_is_the_path():
+    assert hull_box("M 0 0 H 10 V 5", stroke_width="8") == (0, 0, 10, 5)
+
+
+@pytest.mark.parametrize(
+    ("font", "width", "expected"),
+    [("40px", "0.5em", 20.0), ("40px", "1ex", 20.0), ("150%", "1em", 16.0), (None, "1em", 16.0)],
+)
+def test_stroke_width_em_uses_font_size(font, width, expected):
+    style = inkex.Style(stroke_width=width, **({"font_size": font} if font else {}))
+    assert ft.stroke_width(style, VIEWPORT) == pytest.approx(expected)

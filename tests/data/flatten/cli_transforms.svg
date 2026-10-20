@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Inkscape 1.4.4 wrote this file from the command line:
+     inkscape cli_src.svg, with the actions "select-by-id:rect-rotated;transform-rotate:30;
+       select-clear;select-by-id:path-scaled;transform-scale:1.3;transform-rotate:20;
+       select-clear;select-by-id:circle-moved;transform-translate:7,-4;..."
+     Each transform makes a wrapper pattern with a patternTransform. The old
+     fill="url(#base)" attribute stays next to the new style. -->
+<svg
+   width="200"
+   height="200"
+   viewBox="0 0 200 200"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="cli_src.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#111111"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#d1d1d1" />
+  <defs
+     id="defs1">
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#base"
+       id="pattern3"
+       patternTransform="translate(7,-4)" />
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#base"
+       id="pattern2"
+       patternTransform="matrix(1.2216004,0.44462619,-0.44462619,1.2216004,-11.008752,-77.773948)" />
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#base"
+       id="pattern1"
+       patternTransform="translate(20.131397,-34.868603)" />
+    <pattern
+       id="base"
+       patternUnits="userSpaceOnUse"
+       width="10"
+       height="10">
+      <rect
+         width="5"
+         height="10"
+         fill="#36c"
+         id="rect1" />
+    </pattern>
+  </defs>
+  <rect
+     id="rect-rotated"
+     class="target"
+     x="40.131397"
+     y="-14.868603"
+     width="70"
+     height="70"
+     fill="url(#base)"
+     style="fill:url(#pattern1)"
+     transform="rotate(30)" />
+  <path
+     id="path-scaled"
+     class="target"
+     d="M 126.69077,0.0132022 199.9868,26.690773 173.30923,99.986798 100.0132,73.309227 Z"
+     fill="url(#base)"
+     style="fill:url(#pattern2);stroke-width:1" />
+  <circle
+     id="circle-moved"
+     class="target"
+     cx="62"
+     cy="141"
+     r="35"
+     fill="url(#base)"
+     style="fill:url(#pattern3)" />
+  <rect
+     id="rect-plain"
+     class="target"
+     x="115"
+     y="110"
+     width="70"
+     height="70"
+     fill="url(#base)" />
+</svg>

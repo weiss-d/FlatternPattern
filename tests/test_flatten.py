@@ -10,8 +10,9 @@ from conftest import DATA, INKSCAPE, load
 from PIL import Image, ImageChops
 
 import flatternpattern as fp
+from fp_clipped import needs_tile_clip, transform_within
 from fp_resolve import resolve
-from fp_tiling import plan, tile_transform
+from fp_tiling import Tile, plan, tile_transform
 
 FLATTEN = os.path.join(DATA, "flatten")
 FIXTURES = sorted(f for f in os.listdir(FLATTEN) if f.endswith(".svg"))
@@ -60,7 +61,9 @@ def flatten(name, *args):
 def test_no_pattern_paint_remains_on_targets(name):
     doc = load(flatten(name))
     for target in doc.xpath(TARGETS):
-        assert "url(" not in str(target.specified_style().get("fill"))
+        style = target.specified_style()
+        assert "url(" not in str(style.get("fill"))
+        assert "url(" not in str(style.get("stroke"))
         assert target.getparent().get("id") == f"{target.get('id')}-flat"
 
 
@@ -69,7 +72,7 @@ def test_lines_tile_count_and_clip():
     cells = list(doc.getElementById("target-fill"))
     # x 10..190 and y 10..190 with a 41 x 71 tile from (0, 0): 5 columns, 3 rows.
     assert len(cells) == 15
-    # Stroked content always gets the tile clip.
+    # The round caps of the lines go past the tile edge, so each cell gets the tile clip.
     assert all(c.get("clip-path") == "url(#target-tile)" for c in cells)
     assert doc.getElementById("target-shape") is not None
 
@@ -159,11 +162,11 @@ def render(command, png_path):
     return Image.open(png_path).convert("RGB")
 
 
-def render_inkscape(svg_path, png_path):
+def render_inkscape(svg_path, png_path, scale=1):
     options = [
         "--export-type=png",
         f"--export-filename={png_path}",
-        "--export-dpi=96",
+        f"--export-dpi={96 * scale}",
         "--export-area-page",
         "--export-background=white",
         "--export-background-opacity=1",
@@ -171,8 +174,9 @@ def render_inkscape(svg_path, png_path):
     return render([INKSCAPE, svg_path, *options], png_path)
 
 
-def render_rsvg(svg_path, png_path):
-    return render(["rsvg-convert", "--background-color=white", "-o", png_path, svg_path], png_path)
+def render_rsvg(svg_path, png_path, scale=1):
+    command = ["rsvg-convert", f"--zoom={scale}", "--background-color=white", "-o", png_path]
+    return render([*command, svg_path], png_path)
 
 
 def different_part(a, b) -> float:
@@ -185,11 +189,14 @@ def different_part(a, b) -> float:
     return mask.histogram()[255] / (a.width * a.height)
 
 
-def compare(name, tmp_path, render, *args):
-    flat = tmp_path / name
+def compare(name, tmp_path, render, *args, scale=1):
+    """Flatten name and compare the renders before and after. name is a file in
+    FLATTEN or an absolute path."""
+    source = os.path.join(FLATTEN, name)
+    flat = tmp_path / os.path.basename(name)
     flat.write_bytes(flatten(name, *args))
-    before = render(os.path.join(FLATTEN, name), tmp_path / "before.png")
-    after = render(flat, tmp_path / "after.png")
+    before = render(source, tmp_path / "before.png", scale)
+    after = render(flat, tmp_path / "after.png", scale)
     assert before.size == after.size
     assert different_part(before, after) < MAX_DIFFERENT
 
@@ -219,3 +226,162 @@ def test_report_notes_inkscape_view_only_without_option(capsys):
 @pytest.mark.parametrize("name", known_differences(RSVG_DIFFERS))
 def test_rsvg_renders_output_like_input(name, tmp_path):
     compare(name, tmp_path, render_rsvg)
+
+
+# Pattern strokes
+
+
+def test_fill_and_stroke_share_one_group():
+    doc = load(flatten("stroke.svg"))
+    assert [c.get("id") for c in doc.getElementById("both-flat")] == [
+        "both-fill",
+        "both-stroke",
+        "both",
+    ]
+    stroke = doc.getElementById("both-stroke")
+    assert stroke.style.get("opacity") == "0.6"
+    assert stroke.style.get("mask") == "url(#both-stroke-mask)"
+    outline = doc.getElementById("both-stroke-mask")[0]
+    assert outline.style.get("stroke") == "#ffffff"
+    assert outline.style.get("stroke-width") == "10"
+    target = doc.getElementById("both").style
+    assert (target.get("fill"), target.get("stroke")) == ("none", "none")
+
+
+def test_stroke_layer_follows_paint_order():
+    doc = load(flatten("stroke.svg"))
+    # paint-order:stroke paints the stroke below the fill.
+    flat = doc.getElementById("under-stroke-flat")
+    assert [c.get("id") for c in flat] == ["under-stroke-stroke", "under-stroke"]
+    # The normal order paints the stroke above the fill of the target.
+    assert [c.get("id") for c in doc.getElementById("framed-flat")] == [
+        "framed",
+        "framed-stroke",
+    ]
+
+
+def test_stroke_of_line_is_flattened():
+    # The box of a horizontal line has no area, but its stroke does.
+    doc = load(flatten("stroke.svg"))
+    assert len(doc.getElementById("line-stroke")) > 0
+
+
+def test_tile_clip_only_when_content_leaves_tile():
+    doc = load(flatten("seams.svg"))
+    assert doc.getElementById("inside-tile-tile") is None
+    assert doc.getElementById("across-tile-tile") is not None
+
+
+def write_svg(tmp_path, body: str):
+    path = tmp_path / "doc.svg"
+    path.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">'
+        '<defs><pattern id="p" patternUnits="userSpaceOnUse" width="10" height="10">'
+        '<rect width="5" height="5"/></pattern></defs>' + body + "</svg>"
+    )
+    return str(path)
+
+
+def test_stroke_with_zero_width_is_removed(tmp_path, capsys):
+    path = write_svg(
+        tmp_path,
+        '<rect id="r" class="target" width="50" height="50" '
+        'style="fill:none;stroke:url(#p);stroke-width:0"/>',
+    )
+    doc = load(flatten(path))
+    assert doc.getElementById("r").style.get("stroke") == "none"
+    assert "Removed the stroke of #r" in capsys.readouterr().err
+
+
+def test_non_scaling_stroke_is_skipped(tmp_path, capsys):
+    path = write_svg(
+        tmp_path,
+        '<rect id="r" class="target" width="50" height="50" '
+        'style="fill:none;stroke:url(#p);stroke-width:4;vector-effect:non-scaling-stroke"/>',
+    )
+    flatten(path)
+    assert "Skipped #r: The stroke does not scale" in capsys.readouterr().err
+
+
+# A large stencil-like job, made at test time
+
+
+def stencil(path, scale=0.4):
+    """Write a 1000 x 1000 document with an outline that has a hole. Its fill is
+    the asanoha-like tile of lines.svg, scaled by scale and rotated by 12 degrees."""
+    outer, inner = [], []
+    for k in range(180):
+        angle = 2 * math.pi * k / 180
+        r = 400 + 40 * math.sin(5 * angle) + 25 * math.cos(9 * angle)
+        outer.append((500 + r * math.cos(angle), 500 + r * math.sin(angle)))
+        inner.append((500 + 0.3 * r * math.cos(-angle), 480 + 0.3 * r * math.sin(-angle)))
+
+    def ring(points):
+        return "M " + " L ".join(f"{x:.3f} {y:.3f}" for x, y in points) + " Z"
+
+    a = math.radians(12)
+    c, s = scale * math.cos(a), scale * math.sin(a)
+    path.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" '
+        'viewBox="0 0 1000 1000"><defs>'
+        '<pattern id="lines" patternUnits="userSpaceOnUse" width="41" height="71" '
+        f'patternTransform="matrix({c} {s} {-s} {c} 0 0)">'
+        '<g style="fill:none;stroke:#000;stroke-width:3;stroke-linecap:round">'
+        '<path d="M 0 0 L 41 71 M 41 0 L 0 71"/><path d="M 20.5 0 V 71 M 0 35.5 H 41"/>'
+        '<path d="M 0 0 L 20.5 35.5 L 41 0 M 0 71 L 20.5 35.5 L 41 71"/>'
+        "</g></pattern></defs>"
+        f'<path id="stencil" class="target" d="{ring(outer)} {ring(inner)}" '
+        'style="fill:url(#lines);fill-rule:evenodd;stroke:#000;stroke-width:4"/></svg>'
+    )
+    return str(path)
+
+
+def test_stencil_fits_default_limit(tmp_path):
+    doc = load(flatten(stencil(tmp_path / "stencil.svg")))
+    assert 1000 < len(doc.getElementById("stencil-fill")) <= 2000
+
+
+def test_stencil_over_limit_stops(tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        flatten(stencil(tmp_path / "stencil.svg"), "--tile_limit=1000")
+    assert "The limit is 1000" in capsys.readouterr().err
+
+
+@pytest.mark.inkscape
+def test_inkscape_renders_stencil_like_input(tmp_path):
+    compare(stencil(tmp_path / "stencil.svg"), tmp_path, render_inkscape)
+
+
+def test_transform_within_composes_in_document_order():
+    svg = inkex.load_svg(
+        b'<svg xmlns="http://www.w3.org/2000/svg"><g id="top" transform="rotate(30)">'
+        b'<g transform="translate(5 -3)"><g transform="scale(2 0.5)">'
+        b'<path id="p" d="M 0 0 H 1" transform="skewX(15)"/></g></g></g></svg>'
+    ).getroot()
+    path = svg.getElementById("p")
+    got = transform_within(path, svg.getElementById("top")).to_hexad()
+    want = path.composed_transform().to_hexad()
+    assert all(math.isclose(g, w, abs_tol=1e-9) for g, w in zip(got, want, strict=True))
+
+
+def test_content_transform_keeps_full_precision(tmp_path):
+    # The tile box starts at x = 0.123456789, so C = translate(0.123456789, 0).
+    path = tmp_path / "doc.svg"
+    path.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">'
+        '<defs><pattern id="p" patternUnits="userSpaceOnUse" x="0.123456789" width="10" '
+        'height="10"><path d="M 0 5 H 10" stroke="#000"/></pattern></defs>'
+        '<rect id="r" class="target" width="50" height="50" fill="url(#p)"/></svg>'
+    )
+    doc = load(flatten(str(path)))
+    content = doc.getElementById("r-fill")[0][0]
+    assert content.attrib["transform"] == "matrix(1 0 0 1 0.123456789 0)"
+
+
+@pytest.mark.parametrize(
+    ("extra", "clip"), [("", False), (";vector-effect:non-scaling-stroke", True)]
+)
+def test_non_scaling_content_stroke_gets_tile_clip(extra, clip):
+    template = inkex.Group()
+    template.append(inkex.PathElement(d="M 0 4 H 8", style=f"stroke:#000;stroke-width:3{extra}"))
+    assert needs_tile_clip(template, Tile(0, 0, 8, 8), (100, 100)) is clip

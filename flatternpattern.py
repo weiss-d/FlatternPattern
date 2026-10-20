@@ -1,15 +1,15 @@
 #!/usr/bin/env python
-"""FlatternPattern: replace pattern fills with real, tiled geometry."""
+"""FlatternPattern: replace pattern fills and strokes with real, tiled geometry."""
 
 from typing import NamedTuple
 
 import inkex
 from inkex.styles import Style
 
-from fp_clipped import flatten_fill
-from fp_resolve import ResolvedPattern, SkipError, resolve
+from fp_clipped import SHAPES, Part, flatten_element
+from fp_resolve import SkipError, resolve
 from fp_svg import set_props
-from fp_tiling import TileLimitError, TilePlan, inkscape_view_differs, plan
+from fp_tiling import TileLimitError, inkscape_view_differs, plan, stroke_region
 
 # Containers whose content does not render directly, so the walk skips them.
 NON_RENDERED = {
@@ -93,14 +93,7 @@ def classify(elem, prop: str, style: Style) -> Target | Skip | None:
                 elem,
                 "This is a clone. Use Edit > Clone > Unlink Clone, then run the extension again.",
             )
-        case inkex.Pattern() as server, (
-            inkex.PathElement()
-            | inkex.Rectangle()
-            | inkex.Circle()
-            | inkex.Ellipse()
-            | inkex.Line()
-            | inkex.Polyline()
-        ):
+        case inkex.Pattern() as server, _ if isinstance(elem, SHAPES):
             return Target(elem, prop, server)
         case inkex.Pattern() | inkex.Gradient(), _:
             # Gradients need no flattening. A group gives the pattern to its
@@ -149,9 +142,21 @@ def label(elem) -> str:
 
 class Job(NamedTuple):
     target: Target
-    pattern: ResolvedPattern
-    plan: TilePlan
+    part: Part
     bbox: inkex.BoundingBox  # the geometric box of the target before the flattening
+
+
+def region_of(target: Target, path, bbox, viewport) -> inkex.BoundingBox | None:
+    """Return the area that the paint of target covers, or None when it paints nothing."""
+    if target.prop == "fill":
+        return bbox
+    style = target.elem.specified_style()
+    if str(style.get("vector-effect", "none")) == "non-scaling-stroke":
+        raise SkipError(
+            "The stroke does not scale with the object. "
+            "The extension does not support vector-effect:non-scaling-stroke."
+        )
+    return stroke_region(path, style, viewport)
 
 
 def prepare(targets, viewport, limit: int, inkscape_obb: bool = False):
@@ -166,9 +171,6 @@ def prepare(targets, viewport, limit: int, inkscape_obb: bool = False):
     jobs, skips, empty = [], [], []
     used = 0
     for target in targets:
-        if target.prop == "stroke":
-            skips.append(Skip(target.elem, "The extension does not flatten stroke patterns yet."))
-            continue
         try:
             if target.pattern not in resolved:
                 try:
@@ -178,23 +180,69 @@ def prepare(targets, viewport, limit: int, inkscape_obb: bool = False):
             rp = resolved[target.pattern]
             if isinstance(rp, SkipError):
                 raise rp
-            bbox = target.elem.path.bounding_box()
-            tile_plan = (
-                plan(rp, bbox, bbox, viewport, limit - used, inkscape_obb)
-                if rp.content and bbox
-                else None
-            )
+            path = target.elem.path
+            bbox = path.bounding_box()
+            region = region_of(target, path, bbox, viewport) if rp.content and bbox else None
+            if (
+                region is None
+                or (tile_plan := plan(rp, bbox, region, viewport, limit - used, inkscape_obb))
+                is None
+            ):
+                empty.append(target)
+                continue
         except SkipError as err:
             skips.append(Skip(target.elem, str(err)))
             continue
         except TileLimitError as err:
             raise TileLimitError(used + err.args[0]) from err
-        if tile_plan is None:
-            empty.append(target)
-        else:
-            jobs.append(Job(target, rp, tile_plan, bbox))
-            used += len(tile_plan.cells)
+        jobs.append(Job(target, Part(rp, tile_plan, region), bbox))
+        used += len(tile_plan.cells)
     return jobs, skips, empty
+
+
+def moved_elements(jobs) -> list:
+    """Return each element whose pattern Inkscape 1.4 shows at another place
+    than the SVG standard."""
+    return list(
+        dict.fromkeys(
+            job.target.elem
+            for job in jobs
+            if inkscape_view_differs(job.part.pattern, job.part.plan.tile, job.bbox)
+        )
+    )
+
+
+def apply(jobs, empty):
+    """Change the document: flatten the jobs and remove the paints in empty.
+
+    An element with a pattern fill and a pattern stroke gets one output group."""
+    parts: dict = {}
+    for job in jobs:
+        parts.setdefault(job.target.elem, {})[job.target.prop] = job.part
+    for elem, paints in parts.items():
+        flatten_element(elem, paints.get("fill"), paints.get("stroke"))
+    for target in empty:
+        set_props(target.elem, {target.prop: "none"})
+
+
+def report(jobs, empty, skips, moved, merged: bool) -> list[str]:
+    """Return the message lines for the user."""
+    lines = []
+    if merged and jobs:
+        lines.append("Merged mode does not exist yet. The extension made clipped copies.")
+    lines += [
+        f"Removed the {t.prop} of {label(t.elem)}: the pattern paints nothing." for t in empty
+    ]
+    lines += [
+        f"Note for {label(e)}: Inkscape 1.4 shows this pattern at another place. "
+        "The output follows the SVG standard. To keep the Inkscape view, select "
+        '"Match the Inkscape view, not the SVG standard", then run the extension again.'
+        for e in moved
+    ]
+    lines += [f"Skipped {label(s.elem)}: {s.reason}" for s in skips]
+    if not jobs and not empty and not skips:
+        lines.append("The selection has no pattern fill or pattern stroke to flatten.")
+    return lines
 
 
 class FlatternPattern(inkex.EffectExtension):
@@ -211,7 +259,8 @@ class FlatternPattern(inkex.EffectExtension):
     def effect(self):
         if not self.svg.selection:
             raise inkex.AbortExtension(
-                "Select one or more objects with a pattern fill, then run the extension again."
+                "Select one or more objects with a pattern fill or a pattern stroke, "
+                "then run the extension again."
             )
         targets, skips = collect(list(self.svg.selection.values()), self.options.stroke_patterns)
         viewport = (self.svg.viewbox_width, self.svg.viewbox_height)
@@ -224,38 +273,10 @@ class FlatternPattern(inkex.EffectExtension):
                 f"The selection needs at least {err.args[0]} tiles. The limit is {limit}. "
                 "Increase the maximum number of tiles, then run the extension again."
             ) from err
-        skips += more_skips
-        moved = (
-            []
-            if inkscape_obb
-            else [
-                job.target.elem
-                for job in jobs
-                if inkscape_view_differs(job.pattern, job.plan.tile, job.bbox)
-            ]
-        )
-
+        moved = [] if inkscape_obb else moved_elements(jobs)
         # Only clipped mode exists. Merged mode also makes clipped copies.
-        for job in jobs:
-            flatten_fill(job.target.elem, job.pattern, job.plan)
-        for target in empty:
-            set_props(target.elem, {"fill": "none"})
-
-        lines = []
-        if self.options.mode == "merged" and jobs:
-            lines.append("Merged mode does not exist yet. The extension made clipped copies.")
-        lines += [
-            f"Removed the fill of {label(t.elem)}: the pattern paints nothing." for t in empty
-        ]
-        lines += [
-            f"Note for {label(e)}: Inkscape 1.4 shows this pattern at another place. "
-            "The output follows the SVG standard. To keep the Inkscape view, select "
-            '"Match the Inkscape view, not the SVG standard", then run the extension again.'
-            for e in moved
-        ]
-        lines += [f"Skipped {label(s.elem)}: {s.reason}" for s in skips]
-        if not jobs and not empty and not skips:
-            lines.append("The selection has no pattern fill to flatten.")
+        apply(jobs, empty)
+        lines = report(jobs, empty, skips + more_skips, moved, self.options.mode == "merged")
         if lines:
             self.msg("\n".join(lines))
 

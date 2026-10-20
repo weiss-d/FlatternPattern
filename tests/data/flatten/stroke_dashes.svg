@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Dashed pattern strokes. The dashes start at the start point of each shape,
+       so the stroke mask must start at the same point and go the same way. -->
+  <defs>
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="7" height="7">
+      <circle cx="3.5" cy="3.5" r="2.5" fill="#06c"/>
+    </pattern>
+  </defs>
+  <circle id="dashed-circle" class="target" cx="50" cy="50" r="35"
+          style="fill:none;stroke:url(#dots);stroke-width:10;stroke-dasharray:30 12"/>
+  <ellipse id="dashed-ellipse" class="target" cx="145" cy="50" rx="45" ry="28"
+           style="fill:none;stroke:url(#dots);stroke-width:10;stroke-dasharray:25 10;stroke-dashoffset:7"/>
+  <rect id="dashed-rounded" class="target" x="15" y="110" width="80" height="75" rx="18"
+        style="fill:none;stroke:url(#dots);stroke-width:10;stroke-dasharray:20 9"/>
+  <!-- pathLength="100" makes each dash 10 % of the path length. -->
+  <path id="dashed-length" class="target" d="M 110 115 H 185 V 185 H 110 Z" pathLength="100"
+        style="fill:none;stroke:url(#dots);stroke-width:10;stroke-dasharray:10 5"/>
+</svg>

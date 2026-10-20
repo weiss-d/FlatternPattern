@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Pattern strokes: joins, caps, dashes, a line, fill and stroke together, paint-order. -->
+  <defs>
+    <pattern id="hatch45" patternUnits="userSpaceOnUse" width="8" height="8"
+             patternTransform="rotate(45)">
+      <path d="M 0 4 H 8" stroke="#c00" stroke-width="3"/>
+    </pattern>
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="6" height="6">
+      <circle cx="3" cy="3" r="2" fill="#06c"/>
+    </pattern>
+  </defs>
+  <!-- Miter joins on a rect. The fill stays a color. -->
+  <rect id="framed" class="target" x="15" y="15" width="70" height="50"
+        style="fill:#ffd;stroke:url(#hatch45);stroke-width:12"/>
+  <!-- Round caps, round joins and dashes on an open path. -->
+  <path id="dashed" class="target" d="M 110 20 L 185 30 L 120 60 L 180 70"
+        style="fill:none;stroke:url(#dots);stroke-width:10;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24 8;stroke-dashoffset:5"/>
+  <!-- A line has a bounding box with no area. Square caps go past its ends. -->
+  <line id="line" class="target" x1="20" y1="95" x2="90" y2="95"
+        style="stroke:url(#dots);stroke-width:14;stroke-linecap:square"/>
+  <!-- A pattern fill and a pattern stroke on one element, with stroke-opacity. -->
+  <circle id="both" class="target" cx="150" cy="120" r="30"
+          style="fill:url(#dots);stroke:url(#hatch45);stroke-width:10;stroke-opacity:0.6"/>
+  <!-- paint-order: the opaque fill covers the inner half of the stroke. -->
+  <rect id="under-stroke" class="target" x="20" y="125" width="60" height="55"
+        style="fill:#9c9;stroke:url(#hatch45);stroke-width:16;paint-order:stroke"/>
+  <!-- Sharp miter joins with a high miter limit. -->
+  <path id="spiky" class="target" d="M 110 190 L 125 160 L 140 190 L 155 165 L 170 190 Z"
+        style="fill:none;stroke:url(#dots);stroke-width:6;stroke-miterlimit:10"/>
+</svg>
