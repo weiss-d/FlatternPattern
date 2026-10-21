@@ -1,6 +1,7 @@
 import inkex
+import pytest
 
-from fp_svg import fmt_path, fmt_transform, set_props, take_props
+from fp_svg import fmt_path, fmt_transform, opacity_value, set_props, take_props
 
 
 def test_fmt_transform_keeps_small_values():
@@ -12,6 +13,24 @@ def test_fmt_transform_keeps_small_values():
 
 def test_fmt_path_keeps_digits():
     assert fmt_path("M 1.123456789 2 A 5 5 0 0 1 10 10 Z") == "M 1.123456789 2 A 5 5 0 0 1 10 10 Z"
+
+
+@pytest.mark.parametrize(
+    ("text", "value"),
+    [
+        ("0.25", 0.25),
+        ("40%", 0.4),
+        (" 1 ", 1.0),
+        ("-0.5", 0.0),
+        ("2", 1.0),
+        ("150%", 1.0),
+        ("-inf", 0.0),
+        ("nan", 1.0),
+        ("abc", 1.0),
+    ],
+)
+def test_opacity_value_gives_range_0_to_1(text, value):
+    assert opacity_value(text) == value
 
 
 def doc_with(style_rule: str, rect_attrs: str):

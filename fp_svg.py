@@ -5,6 +5,7 @@ coordinate of 2000 that gives an error of about 0.01. All output code in this
 extension writes numbers through these helpers instead.
 """
 
+import math
 import re
 from copy import deepcopy
 
@@ -65,12 +66,14 @@ def box_path(x0: float, y0: float, x1: float, y1: float) -> str:
 
 
 def opacity_value(opacity) -> float:
-    """Return the opacity value as a number. A value that is not a number gives 1."""
+    """Return the opacity value as a number in the range 0 to 1, as a renderer uses
+    it. A value that is not a number, such as "nan" or "abc", gives 1."""
     text = str(opacity).strip()
     try:
-        return float(text[:-1]) / 100 if text.endswith("%") else float(text)
+        value = float(text[:-1]) / 100 if text.endswith("%") else float(text)
     except ValueError:
         return 1.0
+    return 1.0 if math.isnan(value) else min(max(value, 0.0), 1.0)
 
 
 def below_one(opacity) -> bool:
