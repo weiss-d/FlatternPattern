@@ -238,15 +238,17 @@ def paints(elem, top) -> dict:
     return found
 
 
-def shape_copy(elem, transform: inkex.Transform):
+def shape_copy(elem, transform: inkex.Transform, shown: dict):
     """Return a copy of the shape elem in pattern space. transform goes from elem to
-    pattern space.
+    pattern space. shown holds the paints that elem shows (see paints()). The
+    copy gets none for each other paint, so Inkscape does not merge its area.
 
     Inkscape rounds the coordinates of a boolean operation before it applies the
     transform. Content in small units, for example with objectBoundingBox content
     units, then loses precision. Thus a shape with no stroke gets its transform in
     the path data. A stroke width and dashes do not scale with path data, so a
     shape with a stroke keeps its transform."""
+    set_props(elem, {p: "none" for p in ("fill", "stroke") if p not in shown})
     if str(elem.style.get("stroke", "none")) == "none":
         shape = inkex.PathElement()
         set_raw(shape, "d", fmt_path(elem.path.transform(transform)))
@@ -279,7 +281,7 @@ def content_of(part: Part, reset: bool, viewport: tuple[float, float]) -> Conten
             continue
         if not (found := paints(elem, template)):
             continue
-        shapes.append(shape_copy(elem, transform_within(elem, template)))
+        shapes.append(shape_copy(elem, transform_within(elem, template), found))
         colors += found.values()
         opacity = min(opacity, shown_opacity(elem, template, found))
     return Content(shapes, colors, opacity)

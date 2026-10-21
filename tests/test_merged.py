@@ -279,6 +279,28 @@ def test_merged_ignores_content_that_does_not_render(tmp_path):
 
 
 @pytest.mark.inkscape
+@pytest.mark.parametrize(
+    ("style", "box", "subpaths"),
+    [
+        # The stroke does not show, so the path is the 4 x 4 fill only.
+        ("fill:#06c;stroke:#c00;stroke-opacity:0;stroke-width:2", (3, 7), 1),
+        # The fill does not show, so the path is a ring with a hole.
+        ("fill:#06c;fill-opacity:0;stroke:#c00;stroke-width:2", (2, 8), 2),
+    ],
+)
+def test_merged_path_ignores_paint_that_does_not_show(tmp_path, style, box, subpaths):
+    path = document(
+        tmp_path / "o.svg",
+        f'<rect x="3" y="3" width="4" height="4" style="{style}"/>',
+        '<rect id="r" class="target" width="10" height="10" fill="url(#p)"/>',
+    )
+    merged_path = inkex.Path(load(flatten(path, MERGED)).getElementById("r-fill")[0].get("d"))
+    bbox = merged_path.bounding_box()
+    assert (bbox.left, bbox.right) == pytest.approx(box, abs=1e-3)
+    assert len(merged_path.to_superpath()) == subpaths
+
+
+@pytest.mark.inkscape
 def test_temporary_document_has_the_frame_of_the_source(monkeypatch):
     # A percentage in a copied shape then refers to the same viewport as in the source.
     documents = []
