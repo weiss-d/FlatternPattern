@@ -42,6 +42,7 @@ INKSCAPE_DIFFERS = {
 # rsvg-convert renders these inputs against the SVG spec. Inkscape and Chromium follow it.
 RSVG_DIFFERS = {
     "viewbox_slice.svg": "rsvg-convert draws nothing for this viewBox with slice",
+    "percent.svg": "rsvg-convert reads a percentage in pattern content against the tile",
 }
 
 

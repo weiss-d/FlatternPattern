@@ -12,9 +12,27 @@ import inkex
 from inkex.units import CONVERSIONS
 
 from fp_resolve import Length, ResolvedPattern, SkipError, parse_length
+from fp_svg import num
 
 # CSS default font size. The extension does not read the font of the pattern.
 FONT_UNITS = {"em": 16.0, "ex": 8.0}
+# The geometry attributes of shapes, and the viewport side that a percentage
+# refers to: 0 the width, 1 the height, 2 the normalized diagonal.
+PERCENT_AXES = {
+    "x": 0,
+    "width": 0,
+    "cx": 0,
+    "rx": 0,
+    "x1": 0,
+    "x2": 0,
+    "y": 1,
+    "height": 1,
+    "cy": 1,
+    "ry": 1,
+    "y1": 1,
+    "y2": 1,
+    "r": 2,
+}
 # A relative tolerance: a row overlap below this part of the tile area, or a region
 # side below this part of the other side, counts as zero.
 EPS = 1e-9
@@ -130,6 +148,36 @@ def inkscape_view_differs(rp: ResolvedPattern, tile: Tile, bbox: inkex.BoundingB
     return rp.units == "objectBoundingBox" and (
         off_grid(bbox.left, tile.width) or off_grid(bbox.top, tile.height)
     )
+
+
+def resolve_percentages(elem, viewport: tuple[float, float]):
+    """Write each percentage in the geometry attributes of the shape elem as a
+    number in user units.
+
+    inkex reads a percentage in a geometry attribute as 0. A percentage refers to
+    the width, the height or the normalized diagonal of the root viewport. A
+    nested <svg> element has another viewport, which this function does not use."""
+    sides = (viewport[0], viewport[1], math.hypot(*viewport) / math.sqrt(2))
+    for name, axis in PERCENT_AXES.items():
+        text = str(elem.attrib.get(name, "")).strip()
+        if not text.endswith("%"):
+            continue
+        try:
+            length = parse_length(text)
+        except ValueError:
+            continue
+        elem.attrib[name] = num(to_user(length, "userSpaceOnUse", sides[axis], sides[axis]))
+
+
+def shape_path(elem, viewport: tuple[float, float]) -> inkex.Path:
+    """Return the path of the shape elem, with percentages resolved (see
+    resolve_percentages()). elem does not change."""
+    if not any(str(elem.attrib.get(n, "")).strip().endswith("%") for n in PERCENT_AXES):
+        return elem.path
+    copy = type(elem)()
+    copy.attrib.update(elem.attrib)
+    resolve_percentages(copy, viewport)
+    return copy.path
 
 
 def stroke_width(style, viewport: tuple[float, float]) -> float:

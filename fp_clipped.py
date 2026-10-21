@@ -35,7 +35,14 @@ from fp_svg import (
     take_props,
     unique_id,
 )
-from fp_tiling import TilePlan, box_of, stroke_hull, stroke_width, tile_transform
+from fp_tiling import (
+    TilePlan,
+    box_of,
+    resolve_percentages,
+    stroke_hull,
+    stroke_width,
+    tile_transform,
+)
 
 # The properties that apply to the target as a whole, so they move to the group,
 # with the initial values that stop a stylesheet rule on the target.
@@ -101,13 +108,14 @@ class Part(NamedTuple):
     region: inkex.BoundingBox  # the area that the tiles cover: the fill or stroke box
 
 
-def styled_copy(original, reset: bool):
+def styled_copy(original, reset: bool, viewport: tuple[float, float]):
     """Copy original. Write the specified style of each element onto its copy.
 
     Pattern content inherits from the pattern and its ancestors, never from the
     target. The copies move to a new parent, so each copy gets its full style.
     With reset, each copy also gets RESET_STYLE for the properties that are not
-    set. Then a stylesheet rule that matches the new place cannot change it."""
+    set. Then a stylesheet rule that matches the new place cannot change it.
+    Each shape copy gets its percentages as numbers (see resolve_percentages())."""
     copy = deepcopy(original)
     for src, dst in zip(original.iter(), copy.iter(), strict=True):
         if not isinstance(src.tag, str):
@@ -118,6 +126,8 @@ def styled_copy(original, reset: bool):
             style = src.specified_style()
             values = {k: style.get(k) for k in style}
             dst.attrib["style"] = str(inkex.Style({**RESET_STYLE, **values} if reset else values))
+        if isinstance(dst, SHAPES):
+            resolve_percentages(dst, viewport)
     return copy
 
 
@@ -242,9 +252,9 @@ def tile_group(svg, group_id: str, clip_id: str, part: Part, reset: bool):
     group.set("id", unique_id(svg, group_id))
     template = inkex.Group()
     set_raw(template, "transform", fmt_transform(part.plan.content))
-    for original in part.pattern.content:
-        template.append(styled_copy(original, reset))
     viewport = (svg.viewbox_width, svg.viewbox_height)
+    for original in part.pattern.content:
+        template.append(styled_copy(original, reset, viewport))
     clip = (
         tile_clip(svg, clip_id, part.plan.tile)
         if needs_tile_clip(template, part.plan.tile, viewport)

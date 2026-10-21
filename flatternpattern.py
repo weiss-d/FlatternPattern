@@ -9,7 +9,7 @@ from inkex.styles import Style
 from fp_clipped import SHAPES, Part, flatten_element
 from fp_resolve import ResolvedPattern, SkipError, resolve
 from fp_svg import set_props
-from fp_tiling import TileLimitError, inkscape_view_differs, plan, stroke_region
+from fp_tiling import TileLimitError, inkscape_view_differs, plan, shape_path, stroke_region
 
 # Containers whose content does not render directly, so the walk skips them.
 NON_RENDERED = {
@@ -202,7 +202,7 @@ def resolve_once(cache: dict, pattern) -> ResolvedPattern:
 
 def plan_target(target: Target, rp: ResolvedPattern, viewport, limit: int, inkscape_obb: bool):
     """Return the Job for target, or None when its pattern paints nothing."""
-    path = target.elem.path
+    path = shape_path(target.elem, viewport)
     bbox = path.bounding_box()
     if not rp.content or not bbox:
         return None

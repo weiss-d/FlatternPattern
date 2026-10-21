@@ -393,3 +393,16 @@ def test_stroke_hull_without_stroke_is_the_path():
 def test_stroke_width_em_uses_font_size(font, width, expected):
     style = inkex.Style(stroke_width=width, **({"font_size": font} if font else {}))
     assert ft.stroke_width(style, VIEWPORT) == pytest.approx(expected)
+
+
+def test_shape_path_resolves_percentages():
+    # VIEWPORT is 200 x 100. The normalized diagonal is hypot(200, 100) / sqrt(2).
+    rect = inkex.Rectangle(x="10%", y="10%", width="50%", height="50%")
+    box = ft.shape_path(rect, VIEWPORT).bounding_box()
+    assert (box.left, box.top, box.width, box.height) == pytest.approx((20, 10, 100, 50))
+    assert rect.get("width") == "50%"  # the element does not change
+    circle = inkex.Circle(cx="0", cy="0", r="10%")
+    radius = (200**2 + 100**2) ** 0.5 / 2**0.5 / 10
+    # The Bezier curves of a circle go a little past the true circle.
+    width = ft.shape_path(circle, VIEWPORT).bounding_box().width
+    assert width == pytest.approx(2 * radius, rel=1e-4)
