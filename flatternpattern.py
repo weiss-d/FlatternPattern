@@ -7,9 +7,10 @@ from typing import NamedTuple
 import inkex
 from inkex.styles import Style
 
+from fp_cleanup import remove_unused
 from fp_clipped import SHAPES, Part, flatten_element
 from fp_merged import MergeError, merge_fills, merged_layer
-from fp_resolve import ResolvedPattern, SkipError, resolve
+from fp_resolve import ResolvedPattern, SkipError, chain, resolve
 from fp_svg import NON_RENDERED, set_props, unique_id
 from fp_tiling import TileLimitError, inkscape_view_differs, plan, shape_path, stroke_region
 
@@ -300,6 +301,12 @@ def merge_notes(elem, content) -> list[str]:
     return notes
 
 
+def processed_patterns(jobs, empty) -> list:
+    """Return the pattern elements in the href chains of the processed targets."""
+    starts = [j.target.pattern for j in jobs] + [t.pattern for t in empty if t.pattern is not None]
+    return list(dict.fromkeys(p for start in starts for p in chain(start)))
+
+
 def report(jobs, empty, skips, moved, notes) -> list[str]:
     """Return the message lines for the user."""
     lines = list(notes)
@@ -349,6 +356,8 @@ class FlatternPattern(inkex.EffectExtension):
         moved = [] if inkscape_obb else moved_elements(jobs)
         tolerance = self.options.tolerance if self.options.mode == "merged" else None
         notes, empty = apply(jobs, empty, tolerance, self.options.keep_original)
+        if self.options.cleanup_defs:
+            remove_unused(self.svg, processed_patterns(jobs, empty))
         lines = report(jobs, empty, skips + more_skips, moved, notes)
         if lines:
             self.msg("\n".join(lines))
