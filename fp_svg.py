@@ -32,9 +32,44 @@ RESET_STYLE = {
 }
 
 
+# Containers whose content does not render directly.
+NON_RENDERED = {
+    "defs",
+    "clipPath",
+    "mask",
+    "marker",
+    "pattern",
+    "symbol",
+    "metadata",
+    "title",
+    "desc",
+    "style",
+    "script",
+}
+
+
 def num(value: float) -> str:
     text = f"{value:.12g}"
     return "0" if text == "-0" else text
+
+
+def box_path(x0: float, y0: float, x1: float, y1: float) -> str:
+    """Return the path data of the box from (x0, y0) to (x1, y1)."""
+    return f"M {num(x0)} {num(y0)} H {num(x1)} V {num(y1)} H {num(x0)} Z"
+
+
+def opacity_value(opacity) -> float:
+    """Return the opacity value as a number. A value that is not a number gives 1."""
+    text = str(opacity).strip()
+    try:
+        return float(text[:-1]) / 100 if text.endswith("%") else float(text)
+    except ValueError:
+        return 1.0
+
+
+def below_one(opacity) -> bool:
+    """Return True when the opacity value is below 1."""
+    return opacity_value(opacity) < 1
 
 
 def fmt_transform(transform: inkex.Transform) -> str | None:

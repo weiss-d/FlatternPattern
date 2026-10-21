@@ -7,25 +7,13 @@ import inkex
 from inkex.styles import Style
 
 from fp_clipped import SHAPES, Part, flatten_element
+from fp_merged import MergeError, merge_fills, merged_layer
 from fp_resolve import ResolvedPattern, SkipError, resolve
-from fp_svg import set_props
+from fp_svg import NON_RENDERED, set_props
 from fp_tiling import TileLimitError, inkscape_view_differs, plan, shape_path, stroke_region
 
-# Containers whose content does not render directly, so the walk skips them.
-NON_RENDERED = {
-    "defs",
-    "clipPath",
-    "mask",
-    "marker",
-    "pattern",
-    "symbol",
-    "metadata",
-    "title",
-    "desc",
-    "style",
-    "script",
-}
 TEXT_ROOTS = (inkex.TextElement, inkex.FlowRoot)
+STROKE_NOTE = "merged mode does not merge pattern strokes."
 
 
 class Target(NamedTuple):
@@ -225,24 +213,76 @@ def moved_elements(jobs) -> list:
     )
 
 
-def apply(jobs, empty):
+def apply(jobs, empty, tolerance: float | None = None):
     """Change the document: flatten the jobs and remove the paints in empty.
 
-    An element with a pattern fill and a pattern stroke gets one output group."""
+    An element with a pattern fill and a pattern stroke gets one output group.
+    tolerance is the seam overlap of merged mode, or None for clipped mode.
+    Return (notes, empty): the notes about merged mode for the user, and empty
+    with the merged fills that paint nothing."""
     parts: dict = {}
     for job in jobs:
         parts.setdefault(job.target.elem, {})[job.target.prop] = job.part
+    no_merge = ({}, [], [])
+    layers, removed, notes = no_merge if tolerance is None else merged_layers(parts, tolerance)
+    for elem in removed:
+        del parts[elem]["fill"]
+    empty = empty + [Target(elem, "fill", None) for elem in removed]
     for elem, paints in parts.items():
-        flatten_element(elem, paints.get("fill"), paints.get("stroke"))
+        if paints:
+            flatten_element(elem, paints.get("fill"), paints.get("stroke"), layers.get(elem))
     for target in empty:
         set_props(target.elem, {target.prop: "none"})
+    return notes, empty
 
 
-def report(jobs, empty, skips, moved, merged: bool) -> list[str]:
+def merged_layers(parts: dict, tolerance: float):
+    """Return (layers, removed, notes) for merged mode. layers maps each element
+    to its merged fill layer. removed holds the elements whose fill paints
+    nothing. An element without a layer gets clipped copies."""
+    layers, removed, notes = {}, [], []
+    fills = {elem: paints["fill"] for elem, paints in parts.items() if "fill" in paints}
+    # All elements are in one document, so one search for a stylesheet is enough.
+    reset = bool(fills) and bool(next(iter(fills)).root.xpath("//svg:style"))
+    failed: dict = {}  # the elements for each error text, for one note per error
+    for elem, merged in merge_fills(fills, tolerance, reset).items():
+        if isinstance(merged, MergeError):
+            failed.setdefault(str(merged), []).append(label(elem))
+        elif merged is None:
+            removed.append(elem)
+        else:
+            layers[elem] = merged_layer(elem, merged, reset)
+            notes += merge_notes(elem, merged.content)
+    notes += [
+        f"Made clipped copies for the fill of {', '.join(labels)}: {error}"
+        for error, labels in failed.items()
+    ]
+    notes += [
+        f"Made clipped copies for the stroke of {label(elem)}: {STROKE_NOTE}"
+        for elem, paints in parts.items()
+        if "stroke" in paints
+    ]
+    return layers, removed, notes
+
+
+def merge_notes(elem, content) -> list[str]:
+    """Return the notes about what a merged path of content cannot show."""
+    notes = []
+    if len(set(content.colors)) > 1:
+        notes.append(
+            f"The tile content of {label(elem)} has more than one color. "
+            f"The merged path uses the first color, {content.colors[0]}."
+        )
+    if content.translucent:
+        notes.append(
+            f"The tile content of {label(elem)} has an opacity below 1. The merged path is opaque."
+        )
+    return notes
+
+
+def report(jobs, empty, skips, moved, notes) -> list[str]:
     """Return the message lines for the user."""
-    lines = []
-    if merged and jobs:
-        lines.append("Merged mode does not exist yet. The extension made clipped copies.")
+    lines = list(notes)
     lines += [
         f"Removed the {t.prop} of {label(t.elem)}: the pattern paints nothing." for t in empty
     ]
@@ -287,9 +327,9 @@ class FlatternPattern(inkex.EffectExtension):
                 "Increase the maximum number of tiles, then run the extension again."
             ) from err
         moved = [] if inkscape_obb else moved_elements(jobs)
-        # Only clipped mode exists. Merged mode also makes clipped copies.
-        apply(jobs, empty)
-        lines = report(jobs, empty, skips + more_skips, moved, self.options.mode == "merged")
+        tolerance = self.options.tolerance if self.options.mode == "merged" else None
+        notes, empty = apply(jobs, empty, tolerance)
+        lines = report(jobs, empty, skips + more_skips, moved, notes)
         if lines:
             self.msg("\n".join(lines))
 

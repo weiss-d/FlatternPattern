@@ -28,6 +28,8 @@ import inkex
 from fp_resolve import SVG_NS, ResolvedPattern, SkipError
 from fp_svg import (
     RESET_STYLE,
+    below_one,
+    box_path,
     fmt_transform,
     num,
     set_props,
@@ -220,9 +222,8 @@ def geometry_copy(elem):
 
 
 def tile_clip(svg, wanted_id: str, tile):
-    x0, y0, x1, y1 = tile.x, tile.y, tile.x + tile.width, tile.y + tile.height
-    box = path_element(f"M {num(x0)} {num(y0)} H {num(x1)} V {num(y1)} H {num(x0)} Z")
-    return add_clip(svg, wanted_id, box)
+    box = box_path(tile.x, tile.y, tile.x + tile.width, tile.y + tile.height)
+    return add_clip(svg, wanted_id, path_element(box))
 
 
 def paint_order(spec) -> list[str]:
@@ -236,7 +237,7 @@ def paint_order(spec) -> list[str]:
 def paint_style(spec, prop: str) -> dict:
     """Return the style of the group that holds the tiles of prop ("fill" or "stroke")."""
     style = dict(RESET_STYLE)
-    if (opacity := str(spec.get(f"{prop}-opacity", "1"))) not in ("1", "1.0"):
+    if below_one(opacity := str(spec.get(f"{prop}-opacity", "1"))):
         style["opacity"] = opacity
     if str(spec.get("visibility", "visible")) != "visible":
         # A hidden target paints nothing. RESET_STYLE makes the content visible,
@@ -292,15 +293,20 @@ def stroke_mask(svg, eid: str, shape, spec, region: inkex.BoundingBox):
     return mask
 
 
-def flatten_element(elem, fill: Part | None, stroke: Part | None):
-    """Replace the pattern fill and the pattern stroke of elem with clipped copies
-    of the tile content. fill or stroke is None when that paint stays on elem."""
+def flatten_element(elem, fill: Part | None, stroke: Part | None, ready_fill=None):
+    """Replace the pattern fill and the pattern stroke of elem with flat layers.
+    fill or stroke is None when that paint stays on elem.
+
+    The fill layer is ready_fill when the caller gives one, for example from
+    merged mode. Else each layer holds clipped copies of the tile content."""
     svg = elem.root
     spec = elem.specified_style()
     reset = bool(svg.xpath("//svg:style"))
     group = output_group(elem)
     layers = {}
-    if fill is not None:
+    if ready_fill is not None:
+        layers["fill"] = ready_fill
+    elif fill is not None:
         layers["fill"] = fill_layer(elem, spec, fill, reset)
     if stroke is not None:
         layers["stroke"] = stroke_layer(elem, spec, stroke, reset)

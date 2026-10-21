@@ -8,7 +8,7 @@
                 <option value="clipped">Clipped copies</option>
                 <option value="merged">Merged outlines</option>
             </param>
-            <param name="stroke_patterns" type="bool" gui-text="Also flatten stroke patterns (clipped mode only)">true</param>
+            <param name="stroke_patterns" type="bool" gui-text="Also flatten stroke patterns (always as clipped copies)">true</param>
             <param name="keep_original" type="bool" gui-text="Keep a hidden copy of the original">false</param>
             <param name="cleanup_defs" type="bool" gui-text="Remove unused pattern definitions">true</param>
             <param name="tile_limit" type="int" min="1" max="1000000" gui-text="Maximum number of tiles:">2000</param>
@@ -21,7 +21,7 @@
 
 Clipped copies: the extension puts one copy of the tile content for each tile. A clip path with the shape of the object hides the rest. For a stroke, a mask with the shape of the stroke hides the rest. The result is exact and you can edit it.
 
-Merged outlines: the extension converts strokes to paths and makes one filled path. Use this mode for stencils, plotters and cutters. This mode starts Inkscape in the background and needs more time.
+Merged outlines: the extension converts strokes to paths and makes one filled path. Use this mode for stencils, plotters and cutters. This mode starts Inkscape in the background and needs more time. The path has the first color of the tile and no transparency. Pattern strokes always get clipped copies. The extension also makes clipped copies, and shows a message, when Inkscape does not start or when the tile has an image, text, a filter, a mask, a clip, markers, a gradient or a nested pattern.
 
 The extension skips these objects and shows a message:
 - text (use Object to Path first)
