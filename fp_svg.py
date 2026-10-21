@@ -138,14 +138,30 @@ def url_id(value) -> str | None:
     return match[1] if match else None
 
 
-def id_free_copy(elem, suffix: str):
-    """Return a copy of elem with the id ID-suffix. The descendants of the copy
-    get no id, so no id appears two times in the document."""
+def renamed_copy(elem, suffix: str):
+    """Return a copy of elem in which each id becomes ID-suffix (or a free id with
+    that prefix). References inside the copy, url(#id) and href, change to the
+    new ids, so the copy refers to its own parts."""
+    elem.get_id()  # the copy needs an id for ID-suffix
     copy = deepcopy(elem)
-    for node in copy.iterdescendants():
-        if isinstance(node.tag, str):
-            node.attrib.pop("id", None)
-    copy.set("id", unique_id(elem.root, f"{elem.get_id()}-{suffix}"))
+    names = {}
+    for node in copy.iter():
+        if isinstance(node.tag, str) and (old := node.get("id")):
+            names[old] = unique_id(elem.root, f"{old}-{suffix}")
+            node.set("id", names[old])
+
+    def rename(match):
+        new = names.get(match[1], match[1])
+        return match[0][: match.start(1) - match.start(0)] + new
+
+    for node in copy.iter():
+        if not isinstance(node.tag, str):
+            continue
+        for name, value in node.attrib.items():
+            if name.endswith("href") and value[1:] in names and value.startswith("#"):
+                node.attrib[name] = f"#{names[value[1:]]}"
+            elif "url(" in value:
+                node.attrib[name] = URL_RE.sub(rename, value)
     return copy
 
 

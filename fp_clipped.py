@@ -31,8 +31,8 @@ from fp_svg import (
     below_one,
     box_path,
     fmt_transform,
-    id_free_copy,
     num,
+    renamed_copy,
     set_props,
     set_raw,
     take_props,
@@ -377,7 +377,7 @@ def user_space_effect(effect, bbox: inkex.BoundingBox | None):
     content = content_attr is not None and effect.get(content_attr, USER) == OBB
     if not (region or content):
         return None
-    copy = id_free_copy(effect, "flat")
+    copy = renamed_copy(effect, "flat")
     if region:
         region_to_user(copy, bbox)
         copy.set(region_attr, USER)

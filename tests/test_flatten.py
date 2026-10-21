@@ -419,8 +419,8 @@ def test_non_scaling_content_stroke_gets_tile_clip(extra, clip):
 def test_keep_original_adds_hidden_copy_with_pattern():
     doc = load(flatten("transformed_group.svg", "--keep_original=true"))
     original = doc.getElementById("target-original")
-    # The copy is the sibling before the output group and keeps its own transform.
-    assert original.getnext() is doc.getElementById("target-flat")
+    # The copy is the sibling after the output group and keeps its own transform.
+    assert original.getprevious() is doc.getElementById("target-flat")
     assert original.attrib["transform"] == "skewX(10)"
     assert original.style.get("display") == "none"
     assert "url(#" in str(original.style.get("fill") or original.get("fill"))

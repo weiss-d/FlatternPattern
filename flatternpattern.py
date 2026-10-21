@@ -10,7 +10,7 @@ from fp_cleanup import remove_unused
 from fp_clipped import SHAPES, Part, flatten_element
 from fp_merged import MergeError, merge_fills, merged_layer
 from fp_resolve import ResolvedPattern, SkipError, chain, resolve
-from fp_svg import NON_RENDERED, id_free_copy, set_props
+from fp_svg import NON_RENDERED, renamed_copy, set_props
 from fp_tiling import TileLimitError, inkscape_view_differs, plan, shape_path, stroke_region
 
 TEXT_ROOTS = (inkex.TextElement, inkex.FlowRoot)
@@ -215,14 +215,15 @@ def moved_elements(jobs) -> list:
 
 
 def keep_originals(elems):
-    """Put a hidden copy of each element in elems before it, with the id ID-original.
+    """Put a hidden copy of each element in elems after it, with the id ID-original.
 
     The copy keeps the patterns, the transform and all other properties of the
-    element. The descendants of the copy, for example a title, get no id."""
+    element (see renamed_copy()). The copy goes after the element: in a <switch>,
+    the first child renders, and a hidden first child would hide the output."""
     for elem in elems:
-        copy = id_free_copy(elem, "original")
+        copy = renamed_copy(elem, "original")
         set_props(copy, {"display": "none"})
-        elem.addprevious(copy)
+        elem.addnext(copy)
 
 
 def apply(jobs, empty, tolerance: float | None = None, keep_original: bool = False):
