@@ -201,7 +201,8 @@ def compare(name, tmp_path, render, *args, scale=1):
     """Flatten name and compare the renders before and after. name is a file in
     FLATTEN or an absolute path."""
     source = os.path.join(FLATTEN, name)
-    flat = tmp_path / os.path.basename(name)
+    # Not the name of the source: a generated source can be in tmp_path too.
+    flat = tmp_path / f"flat-{os.path.basename(name)}"
     flat.write_bytes(flatten(name, *args))
     before = render(source, tmp_path / "before.png", scale)
     after = render(flat, tmp_path / "after.png", scale)
@@ -371,7 +372,8 @@ def test_stencil_over_limit_stops(tmp_path, capsys):
 
 @pytest.mark.inkscape
 def test_inkscape_renders_stencil_like_input(tmp_path):
-    compare(stencil(tmp_path / "stencil.svg"), tmp_path, render_inkscape)
+    # The lines are 1.2 user units wide, so the render needs the scale of the real files.
+    compare(stencil(tmp_path / "stencil.svg"), tmp_path, render_inkscape, scale=REAL_SCALE)
 
 
 def test_transform_within_composes_in_document_order():
