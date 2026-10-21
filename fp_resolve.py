@@ -88,19 +88,21 @@ class ResolvedPattern(NamedTuple):
 
 
 def href_target(node):
-    """Return the pattern that node refers to with href, or None.
+    """Return the element of the same type that node refers to with href, or None.
+    For a pattern, that is a pattern. For a filter, that is a filter.
 
     href comes before xlink:href (SVG 2). An external URL, a missing element
-    or an element that is not a pattern ends the chain, as if there is no href."""
+    or an element of another type ends the chain, as if there is no href."""
     ref = (node.get("href") or node.get("xlink:href") or "").strip()
     if not ref.startswith("#"):
         return None
     target = node.root.getElementById(ref[1:])
-    return target if isinstance(target, inkex.Pattern) else None
+    return target if target is not None and target.TAG == node.TAG else None
 
 
 def chain(pattern) -> list:
-    """Return pattern and the patterns it inherits from, in href order."""
+    """Return pattern and the patterns it inherits from, in href order. This also
+    works for other elements with href inheritance, such as a filter."""
     nodes = [pattern]
     while (nxt := href_target(nodes[-1])) is not None:
         if nxt in nodes:  # elements compare by identity

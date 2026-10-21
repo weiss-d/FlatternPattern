@@ -25,7 +25,7 @@ from typing import NamedTuple
 
 import inkex
 
-from fp_resolve import SVG_NS, ResolvedPattern, SkipError, parse_length
+from fp_resolve import SVG_NS, ResolvedPattern, SkipError, chain, parse_length
 from fp_svg import (
     RESET_STYLE,
     below_one,
@@ -66,6 +66,17 @@ EFFECT_UNITS = {
     "filter": ("filterUnits", None),
 }
 OBB, USER = "objectBoundingBox", "userSpaceOnUse"
+# The attributes that a mask or a filter inherits through href.
+EFFECT_ATTRS = (
+    "x",
+    "y",
+    "width",
+    "height",
+    "maskUnits",
+    "maskContentUnits",
+    "filterUnits",
+    "primitiveUnits",
+)
 # The default region of a mask and a filter, in objectBoundingBox units.
 REGION_DEFAULT = {"x": "-10%", "y": "-10%", "width": "120%", "height": "120%"}
 # Content of these kinds can go past its bounding box, so it always gets the tile clip.
@@ -306,16 +317,17 @@ def stroke_mask(svg, eid: str, shape, spec, region: inkex.BoundingBox):
     return mask
 
 
-def flatten_element(elem, fill: Part | None, stroke: Part | None, ready_fill=None):
+def flatten_element(elem, fill: Part | None, stroke: Part | None, ready_fill=None, bbox=None):
     """Replace the pattern fill and the pattern stroke of elem with flat layers.
     fill or stroke is None when that paint stays on elem.
 
     The fill layer is ready_fill when the caller gives one, for example from
-    merged mode. Else each layer holds clipped copies of the tile content."""
+    merged mode. Else each layer holds clipped copies of the tile content.
+    bbox is the geometric box of elem (see output_group())."""
     svg = elem.root
     spec = elem.specified_style()
     reset = bool(svg.xpath("//svg:style"))
-    group = output_group(elem)
+    group = output_group(elem, bbox)
     layers = {}
     if ready_fill is not None:
         layers["fill"] = ready_fill
@@ -337,54 +349,91 @@ def flatten_element(elem, fill: Part | None, stroke: Part | None, ready_fill=Non
     return group
 
 
-def output_group(elem):
+def output_group(elem, bbox=None):
     """Put a new group at the place of elem and return it. The transform and the
-    GROUP_PROPS of elem move to the group.
+    GROUP_PROPS of elem move to the group. bbox is the geometric box of elem.
+    Without bbox, the function measures elem.
 
     The tiles make the box of the group larger than the box of elem. Thus a
     clip, mask or filter in objectBoundingBox units changes to a copy in
-    userSpaceOnUse units, from the box of elem (see user_space_effect())."""
+    userSpaceOnUse units, from the box of elem (see user_space_effect()). Such
+    an effect on a box with no area disables the rendering of elem, so then the
+    group gets display:none."""
     svg = elem.root
+    if bbox is None:
+        bbox = shape_path(elem, (svg.viewbox_width, svg.viewbox_height)).bounding_box()
     group = inkex.Group()
     group.set("id", unique_id(svg, f"{elem.get_id()}-flat"))
     elem.addprevious(group)
     set_raw(group, "transform", elem.attrib.pop("transform", None))
     props = take_props(elem, GROUP_PROPS)
-    bbox = None
     for prop in ("clip-path", "mask", "filter"):
         effect = svg.getElementById(eid) if (eid := url_id(props.get(prop, ""))) else None
-        if effect is None:
+        if effect is None or not any(units := obb_units(effect)):
             continue
-        if bbox is None:
-            bbox = shape_path(elem, (svg.viewbox_width, svg.viewbox_height)).bounding_box()
-        if (copy := user_space_effect(effect, bbox)) is not None:
-            props[prop] = f"url(#{copy.get_id()})"
+        if not bbox or bbox.width <= 0 or bbox.height <= 0:
+            props["display"] = "none"
+        else:
+            props[prop] = f"url(#{user_space_effect(effect, bbox, units).get_id()})"
     set_props(group, props)
     return group
 
 
-def user_space_effect(effect, bbox: inkex.BoundingBox | None):
-    """Return a copy of the clipPath, mask or filter effect in userSpaceOnUse
-    units for an element with the box bbox, or None when effect has no
-    objectBoundingBox units or bbox has no area.
+def effect_chain(effect) -> list:
+    """Return effect and the effects that it inherits from through href."""
+    try:
+        return chain(effect)
+    except SkipError:
+        return [effect]  # a circular chain: use effect alone
 
-    The function does not follow an href of effect, and the primitiveUnits of a
-    filter stay as they are. The copy goes in the defs."""
-    if not bbox or bbox.width <= 0 or bbox.height <= 0:
-        return None  # objectBoundingBox units need a box with an area
+
+def inherited(nodes, name: str, default=None):
+    """Return the value of the attribute name from the first node that has it."""
+    return next((n.get(name) for n in nodes if n.get(name) is not None), default)
+
+
+def obb_units(effect) -> tuple[bool, bool]:
+    """Return (region, content): True when the region or the content of effect
+    has objectBoundingBox units. The units can come through the href chain."""
+    nodes = effect_chain(effect)
     region_attr, content_attr = EFFECT_UNITS.get(effect.TAG, (None, None))
-    region = region_attr is not None and effect.get(region_attr, OBB) == OBB
-    content = content_attr is not None and effect.get(content_attr, USER) == OBB
-    if not (region or content):
-        return None
-    copy = renamed_copy(effect, "flat")
-    if region:
+    region = region_attr is not None and inherited(nodes, region_attr, OBB) == OBB
+    content = content_attr is not None and inherited(nodes, content_attr, USER) == OBB
+    return region, content
+
+
+def user_space_effect(effect, bbox: inkex.BoundingBox, units: tuple[bool, bool]):
+    """Return a copy of the clipPath, mask or filter effect in userSpaceOnUse
+    units for an element with the box bbox. units comes from obb_units().
+
+    The primitiveUnits of a filter stay as they are. The copy goes in the defs."""
+    region_attr, content_attr = EFFECT_UNITS[effect.TAG]
+    copy = flat_copy(effect)
+    if units[0]:
         region_to_user(copy, bbox)
         copy.set(region_attr, USER)
-    if content:
+    if units[1]:
         content_to_user(copy, inkex.Transform((bbox.width, 0, 0, bbox.height, bbox.left, bbox.top)))
         copy.set(content_attr, USER)
     effect.root.defs.append(copy)
+    return copy
+
+
+def flat_copy(effect):
+    """Return a copy of effect with the attributes and the content that it
+    inherits through its href chain, and with no href."""
+    nodes = effect_chain(effect)
+    copy = renamed_copy(effect, "flat")
+    for name in EFFECT_ATTRS:
+        if copy.get(name) is None and (value := inherited(nodes, name)) is not None:
+            copy.set(name, value)
+    if not any(isinstance(c.tag, str) for c in copy):
+        source = next((n for n in nodes[1:] if any(isinstance(c.tag, str) for c in n)), None)
+        if source is not None:
+            for child in list(renamed_copy(source, "flat")):
+                copy.append(child)
+    for name in [n for n in copy.attrib if n.endswith("href")]:
+        del copy.attrib[name]
     return copy
 
 

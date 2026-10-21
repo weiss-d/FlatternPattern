@@ -7,10 +7,10 @@ import inkex
 from inkex.styles import Style
 
 from fp_cleanup import remove_unused
-from fp_clipped import SHAPES, Part, flatten_element
+from fp_clipped import SHAPES, Part, effect_chain, flatten_element, inherited
 from fp_merged import MergeError, merge_fills, merged_layer
 from fp_resolve import ResolvedPattern, SkipError, chain, resolve
-from fp_svg import NON_RENDERED, renamed_copy, set_props
+from fp_svg import NON_RENDERED, renamed_copy, set_props, url_id
 from fp_tiling import TileLimitError, inkscape_view_differs, plan, shape_path, stroke_region
 
 TEXT_ROOTS = (inkex.TextElement, inkex.FlowRoot)
@@ -235,6 +235,7 @@ def apply(jobs, empty, tolerance: float | None = None, keep_original: bool = Fal
     Return (notes, empty): the notes about merged mode for the user, and empty
     with the merged fills that paint nothing."""
     parts: dict = {}
+    boxes = {job.target.elem: job.bbox for job in jobs}
     for job in jobs:
         parts.setdefault(job.target.elem, {})[job.target.prop] = job.part
     if keep_original:
@@ -247,7 +248,7 @@ def apply(jobs, empty, tolerance: float | None = None, keep_original: bool = Fal
     for elem, paints in parts.items():
         if paints:
             fill, stroke = paints.get("fill"), paints.get("stroke")
-            flatten_element(elem, fill, stroke, layers.get(elem))
+            flatten_element(elem, fill, stroke, layers.get(elem), boxes[elem])
     for target in empty:
         set_props(target.elem, {target.prop: "none"})
     return notes, empty
@@ -303,6 +304,31 @@ def processed_patterns(jobs, empty) -> list:
     return list(dict.fromkeys(p for start in starts for p in chain(start)))
 
 
+def target_effects(jobs) -> list:
+    """Return (target, effect) for each clip, mask and filter of the flattened
+    targets."""
+    found = []
+    for elem in dict.fromkeys(j.target.elem for j in jobs):
+        style = Style.cascaded_style(elem)
+        for prop in ("clip-path", "mask", "filter"):
+            effect = elem.root.getElementById(eid) if (eid := url_id(style.get(prop, ""))) else None
+            if effect is not None:
+                found.append((elem, effect))
+    return found
+
+
+def primitive_notes(effects) -> list[str]:
+    """Return a note for each filter with primitiveUnits="objectBoundingBox".
+    The extension does not convert these units (see user_space_effect())."""
+    return [
+        f"Note for {label(elem)}: the filter uses primitiveUnits=objectBoundingBox. "
+        "The output can look different, because the extension does not convert these units."
+        for elem, effect in effects
+        if effect.TAG == "filter"
+        and inherited(effect_chain(effect), "primitiveUnits") == "objectBoundingBox"
+    ]
+
+
 def report(jobs, empty, skips, moved, notes) -> list[str]:
     """Return the message lines for the user."""
     lines = list(notes)
@@ -351,9 +377,12 @@ class FlatternPattern(inkex.EffectExtension):
             ) from err
         moved = [] if inkscape_obb else moved_elements(jobs)
         tolerance = self.options.tolerance if self.options.mode == "merged" else None
+        effects = target_effects(jobs)
+        effect_notes = primitive_notes(effects)
         notes, empty = apply(jobs, empty, tolerance, self.options.keep_original)
         if self.options.cleanup_defs:
             remove_unused(self.svg, processed_patterns(jobs, empty))
+        notes = effect_notes + notes
         lines = report(jobs, empty, skips + more_skips, moved, notes)
         if lines:
             self.msg("\n".join(lines))
