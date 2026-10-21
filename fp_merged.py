@@ -328,6 +328,20 @@ def merge_targets(targets: dict, frame: dict) -> dict:
     return dict(zip(targets, run_all(items, frame), strict=True))
 
 
+def tile_contents(fills: dict, keys: dict, reset: bool, viewport: tuple[float, float]) -> dict:
+    """Return the Content of each tile key in keys, or the MergeError that tells why
+    merged mode cannot use that tile. keys maps each element of fills to its tile key.
+    Elements with the same key share one Content."""
+    contents: dict = {}
+    for elem, key in keys.items():
+        if key not in contents:
+            try:
+                contents[key] = content_of(fills[elem], reset, viewport)
+            except MergeError as err:
+                contents[key] = err
+    return contents
+
+
 def merge_fills(fills: dict, tolerance: float, reset: bool) -> dict:
     """Return the merged fill of each element in fills, which maps an element to
     its fill Part. Each value is a Merged, None when the fill paints nothing, or
@@ -339,13 +353,7 @@ def merge_fills(fills: dict, tolerance: float, reset: bool) -> dict:
     svg = next(iter(fills)).root
     frame, viewport = frame_of(svg), (svg.viewbox_width, svg.viewbox_height)
     keys = {elem: tile_key(part, tolerance) for elem, part in fills.items()}
-    contents: dict = {}
-    for elem, key in keys.items():
-        if key not in contents:
-            try:
-                contents[key] = content_of(fills[elem], reset, viewport)
-            except MergeError as err:
-                contents[key] = err
+    contents = tile_contents(fills, keys, reset, viewport)
     tiles = {
         key: (fills[elem], contents[key])
         for elem, key in keys.items()
