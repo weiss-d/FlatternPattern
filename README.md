@@ -66,8 +66,9 @@ path for the object. Use this mode for stencils, plotters and cutters.
 
 This mode starts Inkscape in the background, so it needs more time. The
 merged path has the first color of the tile content and no transparency. The
-extension shows a message when the tile has more than one color or an
-opacity below 1.
+extension shows a message when the tile has more than one color. It also shows
+a message when a shape in the tile has an opacity below 0.99. Inkscape stock
+patterns use values such as 0.995, which look opaque, so they get no message.
 
 The extension makes clipped copies, and shows a message, in these cases:
 
