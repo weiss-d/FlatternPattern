@@ -55,6 +55,16 @@ NON_RENDERED = {
 }
 
 
+def rendered(elem):
+    """Yield elem and its descendants, but not comments and not the content of
+    containers that do not render, such as defs or clipPath."""
+    if not isinstance(elem.tag, str) or elem.TAG in NON_RENDERED:
+        return
+    yield elem
+    for child in elem:
+        yield from rendered(child)
+
+
 def num(value: float) -> str:
     text = f"{value:.12g}"
     return "0" if text == "-0" else text

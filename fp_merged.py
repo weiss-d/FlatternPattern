@@ -35,12 +35,12 @@ from fp_clipped import (
     transform_within,
 )
 from fp_svg import (
-    NON_RENDERED,
     RESET_STYLE,
     box_path,
     fmt_path,
     fmt_transform,
     opacity_value,
+    rendered,
     set_props,
     set_raw,
     unique_id,
@@ -283,16 +283,6 @@ def content_of(part: Part, reset: bool, viewport: tuple[float, float]) -> Conten
         colors += found.values()
         opacity = min(opacity, shown_opacity(elem, template, found))
     return Content(shapes, colors, opacity)
-
-
-def rendered(elem):
-    """Yield elem and its descendants, but not comments and not the content of
-    containers that do not render, such as defs or clipPath."""
-    if not isinstance(elem.tag, str) or elem.TAG in NON_RENDERED:
-        return
-    yield elem
-    for child in elem:
-        yield from rendered(child)
 
 
 def tile_key(part: Part, tolerance: float):
