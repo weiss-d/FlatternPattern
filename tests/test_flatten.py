@@ -410,3 +410,38 @@ def test_non_scaling_content_stroke_gets_tile_clip(extra, clip):
     template = inkex.Group()
     template.append(inkex.PathElement(d="M 0 4 H 8", style=f"stroke:#000;stroke-width:3{extra}"))
     assert needs_tile_clip(template, Tile(0, 0, 8, 8), (100, 100)) is clip
+
+
+# Keep original
+
+
+def test_keep_original_adds_hidden_copy_with_pattern():
+    doc = load(flatten("transformed_group.svg", "--keep_original=true"))
+    original = doc.getElementById("target-original")
+    # The copy is the sibling before the output group and keeps its own transform.
+    assert original.getnext() is doc.getElementById("target-flat")
+    assert original.attrib["transform"] == "skewX(10)"
+    assert original.style.get("display") == "none"
+    assert "url(#" in str(original.style.get("fill") or original.get("fill"))
+    ids = [e.get("id") for e in doc.iter() if isinstance(e.tag, str) and e.get("id")]
+    assert len(ids) == len(set(ids))
+
+
+def test_keep_original_of_target_that_paints_nothing(tmp_path):
+    path = write_svg(
+        tmp_path,
+        '<rect id="r" class="target" width="50" height="50" '
+        'style="fill:none;stroke:url(#p);stroke-width:0"/>',
+    )
+    doc = load(flatten(path, "--keep_original=true"))
+    assert "url(#p)" in str(doc.getElementById("r-original").style.get("stroke"))
+    assert doc.getElementById("r").style.get("stroke") == "none"
+
+
+def test_no_original_without_option():
+    assert load(flatten("lines.svg")).getElementById("target-original") is None
+
+
+@pytest.mark.inkscape
+def test_hidden_original_does_not_render(tmp_path):
+    compare("stroke.svg", tmp_path, render_inkscape, "--keep_original=true")

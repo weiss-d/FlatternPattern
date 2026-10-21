@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """FlatternPattern: replace pattern fills and strokes with real, tiled geometry."""
 
+from copy import deepcopy
 from typing import NamedTuple
 
 import inkex
@@ -9,7 +10,7 @@ from inkex.styles import Style
 from fp_clipped import SHAPES, Part, flatten_element
 from fp_merged import MergeError, merge_fills, merged_layer
 from fp_resolve import ResolvedPattern, SkipError, resolve
-from fp_svg import NON_RENDERED, set_props
+from fp_svg import NON_RENDERED, set_props, unique_id
 from fp_tiling import TileLimitError, inkscape_view_differs, plan, shape_path, stroke_region
 
 TEXT_ROOTS = (inkex.TextElement, inkex.FlowRoot)
@@ -213,16 +214,34 @@ def moved_elements(jobs) -> list:
     )
 
 
-def apply(jobs, empty, tolerance: float | None = None):
+def keep_originals(elems):
+    """Put a hidden copy of each element in elems before it, with the id ID-original.
+
+    The copy keeps the patterns, the transform and all other properties of the
+    element. The descendants of the copy, for example a title, get no id."""
+    for elem in elems:
+        copy = deepcopy(elem)
+        for node in copy.iterdescendants():
+            if isinstance(node.tag, str):
+                node.attrib.pop("id", None)
+        copy.set("id", unique_id(elem.root, f"{elem.get_id()}-original"))
+        set_props(copy, {"display": "none"})
+        elem.addprevious(copy)
+
+
+def apply(jobs, empty, tolerance: float | None = None, keep_original: bool = False):
     """Change the document: flatten the jobs and remove the paints in empty.
 
     An element with a pattern fill and a pattern stroke gets one output group.
     tolerance is the seam overlap of merged mode, or None for clipped mode.
+    With keep_original, each changed element gets a hidden copy (see keep_originals()).
     Return (notes, empty): the notes about merged mode for the user, and empty
     with the merged fills that paint nothing."""
     parts: dict = {}
     for job in jobs:
         parts.setdefault(job.target.elem, {})[job.target.prop] = job.part
+    if keep_original:
+        keep_originals(dict.fromkeys([*parts, *(t.elem for t in empty)]))
     no_merge = ({}, [], [])
     layers, removed, notes = no_merge if tolerance is None else merged_layers(parts, tolerance)
     for elem in removed:
@@ -230,7 +249,8 @@ def apply(jobs, empty, tolerance: float | None = None):
     empty = empty + [Target(elem, "fill", None) for elem in removed]
     for elem, paints in parts.items():
         if paints:
-            flatten_element(elem, paints.get("fill"), paints.get("stroke"), layers.get(elem))
+            fill, stroke = paints.get("fill"), paints.get("stroke")
+            flatten_element(elem, fill, stroke, layers.get(elem))
     for target in empty:
         set_props(target.elem, {target.prop: "none"})
     return notes, empty
@@ -328,7 +348,7 @@ class FlatternPattern(inkex.EffectExtension):
             ) from err
         moved = [] if inkscape_obb else moved_elements(jobs)
         tolerance = self.options.tolerance if self.options.mode == "merged" else None
-        notes, empty = apply(jobs, empty, tolerance)
+        notes, empty = apply(jobs, empty, tolerance, self.options.keep_original)
         lines = report(jobs, empty, skips + more_skips, moved, notes)
         if lines:
             self.msg("\n".join(lines))
