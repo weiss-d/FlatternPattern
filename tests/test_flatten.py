@@ -38,6 +38,7 @@ INKSCAPE_DIFFERS = {
         OBB_FIXTURES, "Inkscape puts objectBoundingBox tiles at the origin, not at the box"
     ),
     "visibility.svg": "Inkscape paints the pattern fill of a target with visibility:hidden",
+    "effects_obb.svg": "Inkscape ignores mask regions and draws this filter region otherwise",
 }
 # rsvg-convert renders these inputs against the SVG spec. Inkscape and Chromium follow it.
 RSVG_DIFFERS = {
@@ -445,3 +446,35 @@ def test_no_original_without_option():
 @pytest.mark.inkscape
 def test_hidden_original_does_not_render(tmp_path):
     compare("stroke.svg", tmp_path, render_inkscape, "--keep_original=true")
+
+
+# Effects in objectBoundingBox units on the output group
+
+
+def test_effects_change_to_user_space():
+    doc = load(flatten("effects_obb.svg"))
+    group = doc.getElementById("regioned-flat")
+    assert group.style.get("mask") == "url(#region-flat)"
+    region = doc.getElementById("region-flat")
+    # x = 10 + 0.25 * 80 and width = 0.5 * 80 in the box of the target.
+    assert [region.get(n) for n in ("maskUnits", "x", "width")] == ["userSpaceOnUse", "30", "40"]
+    blur = doc.getElementById("blur-flat")
+    assert [blur.get(n) for n in ("filterUnits", "x", "width")] == ["userSpaceOnUse", "110", "80"]
+    circle = doc.getElementById("round-flat")[0]
+    assert circle.attrib["transform"] == "matrix(80 0 0 80 10 10)"
+    assert doc.getElementById("round-flat").get("clipPathUnits") == "userSpaceOnUse"
+    left = doc.getElementById("left-flat")
+    assert left[0].attrib["transform"] == "matrix(80 0 0 80 110 10)"
+    # The default region -10% / 120% of the box 110, 10, 80, 80.
+    assert [left.get(n) for n in ("x", "y", "width", "height")] == ["102", "2", "96", "96"]
+    assert all(e.get("id") is None for e in left.iterdescendants())
+
+
+def test_no_effect_copy_without_target_effects():
+    doc = load(flatten("css_hidden.svg"))
+    # Only the effects of a target move to the output group. The targets in
+    # css_hidden.svg have none (the filter there is on the tile content).
+    assert not doc.xpath(
+        "//*[substring(@id, string-length(@id) - 4) = '-flat' and "
+        "(self::svg:mask or self::svg:filter or self::svg:clipPath)]"
+    )

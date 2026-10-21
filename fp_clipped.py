@@ -25,22 +25,25 @@ from typing import NamedTuple
 
 import inkex
 
-from fp_resolve import SVG_NS, ResolvedPattern, SkipError
+from fp_resolve import SVG_NS, ResolvedPattern, SkipError, parse_length
 from fp_svg import (
     RESET_STYLE,
     below_one,
     box_path,
     fmt_transform,
+    id_free_copy,
     num,
     set_props,
     set_raw,
     take_props,
     unique_id,
+    url_id,
 )
 from fp_tiling import (
     TilePlan,
     box_of,
     resolve_percentages,
+    shape_path,
     stroke_hull,
     stroke_width,
     tile_transform,
@@ -55,6 +58,16 @@ GROUP_PROPS = {
     "opacity": "1",
     "display": "inline",
 }
+# The effects that move to the output group: the attribute for the units of the
+# region and the attribute for the units of the content, if the effect has one.
+EFFECT_UNITS = {
+    "clipPath": (None, "clipPathUnits"),
+    "mask": ("maskUnits", "maskContentUnits"),
+    "filter": ("filterUnits", None),
+}
+OBB, USER = "objectBoundingBox", "userSpaceOnUse"
+# The default region of a mask and a filter, in objectBoundingBox units.
+REGION_DEFAULT = {"x": "-10%", "y": "-10%", "width": "120%", "height": "120%"}
 # Content of these kinds can go past its bounding box, so it always gets the tile clip.
 UNBOUNDED = {"text", "flowRoot", "image", "use", "foreignObject", "switch", "svg"}
 # The elements that paint their own path. inkex.Polygon is a Polyline.
@@ -326,13 +339,92 @@ def flatten_element(elem, fill: Part | None, stroke: Part | None, ready_fill=Non
 
 def output_group(elem):
     """Put a new group at the place of elem and return it. The transform and the
-    GROUP_PROPS of elem move to the group."""
+    GROUP_PROPS of elem move to the group.
+
+    The tiles make the box of the group larger than the box of elem. Thus a
+    clip, mask or filter in objectBoundingBox units changes to a copy in
+    userSpaceOnUse units, from the box of elem (see user_space_effect())."""
+    svg = elem.root
     group = inkex.Group()
-    group.set("id", unique_id(elem.root, f"{elem.get_id()}-flat"))
+    group.set("id", unique_id(svg, f"{elem.get_id()}-flat"))
     elem.addprevious(group)
     set_raw(group, "transform", elem.attrib.pop("transform", None))
-    set_props(group, take_props(elem, GROUP_PROPS))
+    props = take_props(elem, GROUP_PROPS)
+    bbox = None
+    for prop in ("clip-path", "mask", "filter"):
+        effect = svg.getElementById(eid) if (eid := url_id(props.get(prop, ""))) else None
+        if effect is None:
+            continue
+        if bbox is None:
+            bbox = shape_path(elem, (svg.viewbox_width, svg.viewbox_height)).bounding_box()
+        if (copy := user_space_effect(effect, bbox)) is not None:
+            props[prop] = f"url(#{copy.get_id()})"
+    set_props(group, props)
     return group
+
+
+def user_space_effect(effect, bbox: inkex.BoundingBox | None):
+    """Return a copy of the clipPath, mask or filter effect in userSpaceOnUse
+    units for an element with the box bbox, or None when effect has no
+    objectBoundingBox units or bbox has no area.
+
+    The function does not follow an href of effect, and the primitiveUnits of a
+    filter stay as they are. The copy goes in the defs."""
+    if not bbox or bbox.width <= 0 or bbox.height <= 0:
+        return None  # objectBoundingBox units need a box with an area
+    region_attr, content_attr = EFFECT_UNITS.get(effect.TAG, (None, None))
+    region = region_attr is not None and effect.get(region_attr, OBB) == OBB
+    content = content_attr is not None and effect.get(content_attr, USER) == OBB
+    if not (region or content):
+        return None
+    copy = id_free_copy(effect, "flat")
+    if region:
+        region_to_user(copy, bbox)
+        copy.set(region_attr, USER)
+    if content:
+        content_to_user(copy, inkex.Transform((bbox.width, 0, 0, bbox.height, bbox.left, bbox.top)))
+        copy.set(content_attr, USER)
+    effect.root.defs.append(copy)
+    return copy
+
+
+def region_to_user(effect, bbox: inkex.BoundingBox):
+    """Write the region of a mask or filter in objectBoundingBox units as user units."""
+    x, y, w, h = (fraction(effect.get(n), d) for n, d in REGION_DEFAULT.items())
+    effect.set("x", num(bbox.left + x * bbox.width))
+    effect.set("y", num(bbox.top + y * bbox.height))
+    effect.set("width", num(w * bbox.width))
+    effect.set("height", num(h * bbox.height))
+
+
+def content_to_user(effect, box: inkex.Transform):
+    """Give the content of a clipPath or mask the transform box from
+    objectBoundingBox units to user units."""
+    if effect.TAG == "clipPath":
+        # A clipPath cannot hold a group. Inkscape 1.4 ignores a transform on the
+        # clipPath itself, so each child gets the box transform and the transform
+        # of the clipPath.
+        outer = box @ inkex.Transform(effect.attrib.pop("transform", None))
+        for child in effect:
+            if isinstance(child.tag, str):
+                transform = outer @ inkex.Transform(child.attrib.get("transform"))
+                set_raw(child, "transform", fmt_transform(transform))
+        return
+    wrapper = inkex.Group()
+    set_raw(wrapper, "transform", fmt_transform(box))
+    for child in list(effect):
+        wrapper.append(child)
+    effect.append(wrapper)
+
+
+def fraction(text, default: str) -> float:
+    """Return an objectBoundingBox value as a fraction: 0.5 and 50% both give 0.5.
+    A missing or bad value gives default."""
+    try:
+        length = parse_length(str(text if text is not None else default).strip())
+    except ValueError:
+        length = parse_length(default)
+    return length.value / 100 if length.unit == "%" else length.value
 
 
 def fill_layer(elem, spec, part: Part, reset: bool):

@@ -132,6 +132,12 @@ def set_props(elem, values: dict):
         elem.attrib.pop(name, None)  # a presentation attribute must not stay
 
 
+def url_id(value) -> str | None:
+    """Return the id in a value like url(#id), or None."""
+    match = URL_RE.match(str(value).strip())
+    return match[1] if match else None
+
+
 def id_free_copy(elem, suffix: str):
     """Return a copy of elem with the id ID-suffix. The descendants of the copy
     get no id, so no id appears two times in the document."""

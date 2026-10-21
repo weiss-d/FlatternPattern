@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- A clip, a mask and a filter in objectBoundingBox units on the targets. The
+       tiles go past the targets, so the output group has a larger box. -->
+  <defs>
+    <pattern id="big" patternUnits="userSpaceOnUse" x="3" y="7" width="40" height="40">
+      <rect width="30" height="30" fill="#06c"/>
+    </pattern>
+    <clipPath id="round" clipPathUnits="objectBoundingBox">
+      <circle cx="0.5" cy="0.5" r="0.5"/>
+    </clipPath>
+    <mask id="left" maskContentUnits="objectBoundingBox">
+      <rect width="0.5" height="1" fill="#fff"/>
+    </mask>
+    <mask id="region" x="0.25" y="0" width="0.5" height="1">
+      <rect width="200" height="200" fill="#fff"/>
+    </mask>
+    <filter id="blur" x="0" y="0" width="1" height="1">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+  <rect id="clipped" class="target" x="10" y="10" width="80" height="80"
+        fill="url(#big)" clip-path="url(#round)"/>
+  <rect id="masked" class="target" x="110" y="10" width="80" height="80"
+        fill="url(#big)" mask="url(#left)"/>
+  <rect id="regioned" class="target" x="10" y="110" width="80" height="80"
+        fill="url(#big)" mask="url(#region)"/>
+  <rect id="blurred" class="target" x="110" y="110" width="80" height="80"
+        fill="url(#big)" filter="url(#blur)"/>
+</svg>
