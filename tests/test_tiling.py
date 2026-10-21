@@ -228,10 +228,41 @@ def test_reference_transform_cells_cover_region():
 
 @pytest.mark.parametrize(
     ("d", "expected"),
-    [("M 0 4 H 8", False), ("M 0 0 L 10 10", False), ("M 0 0 H 10 V 10", True)],
+    [
+        ("M 0 4 H 8", False),
+        ("M 0 0 L 10 10", False),
+        ("M 0 0 H 10 V 10", True),
+        ("M 0 0 L 10 10 L 10 0 L 0 10 Z", True),  # a bowtie: the signed area is 0
+        ("M 0 0 L 10 0 L 5 0 Z", False),  # back and forth on one line
+        ("M 0.1 0.1 L 0.3 0.3 L 0.7 0.7", False),  # float noise only
+        ("M 0 0 C 0 10 10 10 10 0", True),  # an open curve closes with a line
+        ("M 5 5 Z", False),
+    ],
 )
 def test_encloses_area(d, expected):
     assert ft.encloses_area(inkex.Path(d)) is expected
+
+
+@pytest.mark.parametrize(
+    ("transform", "expected"),
+    [
+        ("scale(10, 0.1)", 0.1),
+        ("scale(-3)", 3.0),
+        ("rotate(30) scale(2)", 2.0),
+        ("matrix(1 0 1 1 0 0)", (3 - 5**0.5) ** 0.5 / 2**0.5),  # a shear
+        ("scale(0, 1)", 0.0),
+    ],
+)
+def test_min_stretch(transform, expected):
+    assert ft.min_stretch(inkex.Transform(transform)) == pytest.approx(expected)
+
+
+def test_overlap_is_tolerance_in_all_directions():
+    tp = ft.plan(rp(), BBOX, BBOX, VIEWPORT, limit=100)._replace(
+        transform=inkex.Transform("scale(10, 0.1)")
+    )
+    # 0.1 pattern units become 0.01 user units along y, and 1 along x.
+    assert ft.overlap_of(tp, 0.01) == pytest.approx(0.1)
 
 
 # Plan

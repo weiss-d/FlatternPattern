@@ -328,8 +328,25 @@ def area(poly) -> float:
 
 
 def encloses_area(path: inkex.Path) -> bool:
-    """Return True when a subpath of path encloses an area, so a fill paints."""
-    return any(area([tuple(p) for node in sub for p in node]) > 0 for sub in path.to_superpath())
+    """Return True when a subpath of path encloses an area, so a fill paints.
+
+    A subpath encloses an area when its points and control points are not on
+    one line. The signed area is not a good test: the two lobes of a bowtie
+    cancel, but the fill paints both."""
+    return any(
+        not collinear([tuple(p) for node in sub for p in node]) for sub in path.to_superpath()
+    )
+
+
+def collinear(points) -> bool:
+    """Return True when all points are on one line. A distance from the line of
+    EPS times the size of points or less is float noise."""
+    x0, y0 = points[0]
+    far = max(points, key=lambda p: (p[0] - x0) ** 2 + (p[1] - y0) ** 2)
+    dx, dy = far[0] - x0, far[1] - y0
+    # The cross product is the distance from the line times the length of (dx, dy).
+    size = dx * dx + dy * dy
+    return all(abs(dx * (y - y0) - dy * (x - x0)) <= EPS * size for x, y in points)
 
 
 def cells(tile: Tile, transform: inkex.Transform, region: inkex.BoundingBox):
@@ -374,9 +391,21 @@ def area_scale(transform: inkex.Transform) -> float:
     return abs(transform.a * transform.d - transform.b * transform.c)
 
 
+def min_stretch(transform: inkex.Transform) -> float:
+    """Return the smallest factor by which transform makes a length longer, in
+    all directions (the smallest singular value). 0 when transform has no area."""
+    a, b, c, d = transform.a, transform.b, transform.c, transform.d
+    squares = a * a + b * b + c * c + d * d
+    det = area_scale(transform)
+    largest = math.sqrt((squares + math.sqrt(max(squares**2 - 4 * det**2, 0.0))) / 2)
+    return det / largest if largest else 0.0
+
+
 def overlap_of(tile_plan: TilePlan, tolerance: float) -> float:
-    """Return the seam overlap in pattern space. tolerance is in user units."""
-    return tolerance / area_scale(tile_plan.transform) ** 0.5
+    """Return the seam overlap in pattern space: a distance that is at least
+    tolerance user units in all directions. The transform of tile_plan has an
+    area, because plan() gives no plan for a transform with no area."""
+    return tolerance / min_stretch(tile_plan.transform)
 
 
 def has_no_area(transform: inkex.Transform, region: inkex.BoundingBox) -> bool:
