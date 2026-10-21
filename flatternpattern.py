@@ -306,7 +306,8 @@ def processed_patterns(jobs, empty) -> list:
 
 def target_effects(jobs) -> list:
     """Return (target, effect) for each clip, mask and filter of the flattened
-    targets."""
+    targets. The output groups can get copies of these effects (see
+    fp_clipped.output_group()), so the cleanup checks the originals too."""
     found = []
     for elem in dict.fromkeys(j.target.elem for j in jobs):
         style = Style.cascaded_style(elem)
@@ -378,10 +379,11 @@ class FlatternPattern(inkex.EffectExtension):
         moved = [] if inkscape_obb else moved_elements(jobs)
         tolerance = self.options.tolerance if self.options.mode == "merged" else None
         effects = target_effects(jobs)
-        effect_notes = primitive_notes(effects)
+        effect_notes = primitive_notes(effects)  # before the cleanup removes effects
         notes, empty = apply(jobs, empty, tolerance, self.options.keep_original)
         if self.options.cleanup_defs:
-            remove_unused(self.svg, processed_patterns(jobs, empty))
+            candidates = processed_patterns(jobs, empty) + [e for _, e in effects]
+            remove_unused(self.svg, list(dict.fromkeys(candidates)))
         notes = effect_notes + notes
         lines = report(jobs, empty, skips + more_skips, moved, notes)
         if lines:

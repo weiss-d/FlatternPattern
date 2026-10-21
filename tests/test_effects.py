@@ -1,4 +1,5 @@
-"""Tests for the effects of targets (clip, mask, filter) and hidden originals."""
+"""Tests for the effects of targets (clip, mask, filter), hidden originals and
+the cleanup of the definitions that only flattened targets used."""
 
 from conftest import load
 from test_flatten import flatten
@@ -46,6 +47,7 @@ def test_effect_copy_keeps_its_internal_references(tmp_path):
     gradient, rect = doc.getElementById("m-flat")[0]
     assert gradient.get("id") == "g-flat"
     assert rect.get("fill") == "url(#g-flat)"
+    assert doc.getElementById("g") is None  # the original mask is unused, so it goes
 
 
 def test_bounding_box_effect_on_box_with_no_area_hides_output(tmp_path):
@@ -90,3 +92,49 @@ def test_note_for_filter_primitive_units(tmp_path, capsys):
     assert "Note for #r: the filter uses primitiveUnits=objectBoundingBox" in (
         capsys.readouterr().err
     )
+
+
+INNER = (
+    '<clipPath id="inner"><circle cx="2" cy="2" r="2"/></clipPath>'
+    '<pattern id="q" patternUnits="userSpaceOnUse" width="10" height="10">'
+    '<rect width="5" height="5" clip-path="url(#inner)"/></pattern>'
+)
+
+
+def test_cleanup_removes_replaced_effect(tmp_path):
+    defs = (
+        '<clipPath id="round" clipPathUnits="objectBoundingBox">'
+        '<circle cx="0.5" cy="0.5" r="0.5"/></clipPath>'
+    )
+    path = write(
+        tmp_path,
+        defs,
+        '<rect id="r" class="target" width="50" height="50" '
+        'fill="url(#p)" clip-path="url(#round)"/>',
+    )
+    doc = load(flatten(path))
+    assert doc.getElementById("round") is None
+    assert doc.getElementById("round-flat") is not None
+
+
+def test_cleanup_removes_defs_that_only_removed_pattern_used(tmp_path):
+    # The stroke paints nothing, so no tile copy refers to #inner.
+    path = write(
+        tmp_path,
+        INNER,
+        '<rect id="r" class="target" width="50" height="50" '
+        'style="fill:none;stroke:url(#q);stroke-width:0"/>',
+    )
+    doc = load(flatten(path))
+    assert doc.getElementById("q") is None
+    assert doc.getElementById("inner") is None
+    assert doc.getElementById("p") is not None  # an unrelated pattern stays
+
+
+def test_cleanup_keeps_defs_that_tile_copies_use(tmp_path):
+    path = write(
+        tmp_path, INNER, '<rect id="r" class="target" width="50" height="50" fill="url(#q)"/>'
+    )
+    doc = load(flatten(path))
+    assert doc.getElementById("q") is None
+    assert doc.getElementById("inner") is not None
