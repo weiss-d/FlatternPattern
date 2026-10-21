@@ -383,10 +383,10 @@ def flatten_element(
     reset = bool(svg.xpath("//svg:style"))
     group = output_group(elem, bbox)
     layers = {}
+    if ready_fill is None and fill is not None:
+        ready_fill = fill_layer(elem, spec, fill, reset, bleed)
     if ready_fill is not None:
         layers["fill"] = ready_fill
-    elif fill is not None:
-        layers["fill"] = fill_layer(elem, spec, fill, reset, bleed)
     if stroke is not None:
         layers["stroke"] = stroke_layer(elem, spec, stroke, reset, bleed)
     set_props(elem, dict.fromkeys(layers, "none"))
