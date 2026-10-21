@@ -5,7 +5,13 @@ coordinate of 2000 that gives an error of about 0.01. All output code in this
 extension writes numbers through these helpers instead.
 """
 
+import re
+from copy import deepcopy
+
 import inkex
+
+# A reference such as url(#id), url('#id') or url( #id ) in a property value.
+URL_RE = re.compile(r"url\(\s*['\"]?#([^)'\"\s]+)")
 
 # Inheritable painting properties and their initial values. Tile content copies
 # move to a new parent, so a group with these values stops inheritance from the
@@ -124,6 +130,17 @@ def set_props(elem, values: dict):
     elem.style = inkex.Style({**{k: style.get(k) for k in style}, **values})
     for name in values:
         elem.attrib.pop(name, None)  # a presentation attribute must not stay
+
+
+def id_free_copy(elem, suffix: str):
+    """Return a copy of elem with the id ID-suffix. The descendants of the copy
+    get no id, so no id appears two times in the document."""
+    copy = deepcopy(elem)
+    for node in copy.iterdescendants():
+        if isinstance(node.tag, str):
+            node.attrib.pop("id", None)
+    copy.set("id", unique_id(elem.root, f"{elem.get_id()}-{suffix}"))
+    return copy
 
 
 def unique_id(svg, wanted: str) -> str:

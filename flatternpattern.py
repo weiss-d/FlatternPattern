@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """FlatternPattern: replace pattern fills and strokes with real, tiled geometry."""
 
-from copy import deepcopy
 from typing import NamedTuple
 
 import inkex
@@ -11,7 +10,7 @@ from fp_cleanup import remove_unused
 from fp_clipped import SHAPES, Part, flatten_element
 from fp_merged import MergeError, merge_fills, merged_layer
 from fp_resolve import ResolvedPattern, SkipError, chain, resolve
-from fp_svg import NON_RENDERED, set_props, unique_id
+from fp_svg import NON_RENDERED, id_free_copy, set_props
 from fp_tiling import TileLimitError, inkscape_view_differs, plan, shape_path, stroke_region
 
 TEXT_ROOTS = (inkex.TextElement, inkex.FlowRoot)
@@ -221,11 +220,7 @@ def keep_originals(elems):
     The copy keeps the patterns, the transform and all other properties of the
     element. The descendants of the copy, for example a title, get no id."""
     for elem in elems:
-        copy = deepcopy(elem)
-        for node in copy.iterdescendants():
-            if isinstance(node.tag, str):
-                node.attrib.pop("id", None)
-        copy.set("id", unique_id(elem.root, f"{elem.get_id()}-original"))
+        copy = id_free_copy(elem, "original")
         set_props(copy, {"display": "none"})
         elem.addprevious(copy)
 

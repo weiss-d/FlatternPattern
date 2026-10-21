@@ -1,9 +1,8 @@
 """Removal of the pattern definitions that the extension no longer needs."""
 
-import re
 from collections import Counter
 
-URL_RE = re.compile(r"url\(\s*['\"]?#([^)'\"\s]+)")
+from fp_svg import URL_RE
 
 
 def references(root) -> Counter:
