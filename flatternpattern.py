@@ -230,11 +230,15 @@ def keep_originals(elems):
         elem.addnext(copy)
 
 
-def apply(jobs, empty, tolerance: float | None = None, keep_original: bool = False):
+def apply(
+    jobs, empty, tolerance: float | None = None, keep_original: bool = False, bleed: float = 0.0
+):
     """Change the document: flatten the jobs and remove the paints in empty.
 
     An element with a pattern fill and a pattern stroke gets one output group.
     tolerance is the seam overlap of merged mode, or None for clipped mode.
+    bleed is the seam bleed of the clipped copies in user units, 0 for none
+    (see fp_clipped.tile_group()).
     With keep_original, each changed element gets a hidden copy (see keep_originals()).
     Return (notes, empty): the notes about merged mode for the user, and empty
     with the merged fills that paint nothing."""
@@ -252,7 +256,7 @@ def apply(jobs, empty, tolerance: float | None = None, keep_original: bool = Fal
     for elem, paints in parts.items():
         if paints:
             fill, stroke = paints.get("fill"), paints.get("stroke")
-            flatten_element(elem, fill, stroke, layers.get(elem), boxes[elem])
+            flatten_element(elem, fill, stroke, layers.get(elem), boxes[elem], bleed)
     for target in empty:
         set_props(target.elem, {target.prop: "none"})
     return notes, empty
@@ -371,6 +375,8 @@ class FlatternPattern(inkex.EffectExtension):
         pars.add_argument("--tile_limit", type=int, default=2000)
         pars.add_argument("--tolerance", type=float, default=0.01)
         pars.add_argument("--inkscape_obb", type=inkex.Boolean, default=False)
+        pars.add_argument("--seam_bleed", type=inkex.Boolean, default=False)
+        pars.add_argument("--bleed_px", type=float, default=0.2)
 
     def effect(self):
         if not self.svg.selection:
@@ -393,7 +399,8 @@ class FlatternPattern(inkex.EffectExtension):
         tolerance = self.options.tolerance if self.options.mode == "merged" else None
         effects = target_effects(jobs)
         effect_notes = primitive_notes(effects)  # before the cleanup removes effects
-        notes, empty = apply(jobs, empty, tolerance, self.options.keep_original)
+        bleed = self.svg.unittouu(f"{self.options.bleed_px}px") if self.options.seam_bleed else 0.0
+        notes, empty = apply(jobs, empty, tolerance, self.options.keep_original, bleed)
         if self.options.cleanup_defs:
             candidates = processed_patterns(jobs, empty) + [e for _, e in effects]
             remove_unused(self.svg, list(dict.fromkeys(candidates)))

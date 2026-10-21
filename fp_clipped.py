@@ -33,6 +33,7 @@ from fp_svg import (
     fmt_transform,
     num,
     renamed_copy,
+    rendered,
     set_props,
     set_raw,
     take_props,
@@ -42,6 +43,9 @@ from fp_svg import (
 from fp_tiling import (
     TilePlan,
     box_of,
+    encloses_area,
+    min_stretch,
+    overlap_of,
     resolve_percentages,
     shape_path,
     stroke_hull,
@@ -245,9 +249,47 @@ def geometry_copy(elem):
     return copy
 
 
-def tile_clip(svg, wanted_id: str, tile):
-    box = box_path(tile.x, tile.y, tile.x + tile.width, tile.y + tile.height)
+def tile_clip(svg, wanted_id: str, tile, grow: float = 0.0):
+    """Add a clip of the tile box, larger by grow on each side, and return it."""
+    box = box_path(
+        tile.x - grow, tile.y - grow, tile.x + tile.width + grow, tile.y + tile.height + grow
+    )
     return add_clip(svg, wanted_id, path_element(box))
+
+
+def add_bleed(template, grow: float):
+    """Give each shape in template that paints only a fill a stroke of its fill
+    paint. The stroke is 2 * grow wide in pattern space, so the shape grows by
+    grow in all directions. paint-order:stroke keeps the fill on top.
+
+    A shape with a stroke stays as it is: its stroke can go past the tile box,
+    and the larger tile clip then gives the overlap. A shape whose fill has no
+    area also stays as it is, because a stroke would make it visible."""
+    for elem in rendered(template):
+        if not isinstance(elem, SHAPES):
+            continue
+        style = elem.style
+        fill = str(style.get("fill", "black")).strip()
+        if fill == "none" or str(style.get("stroke", "none")).strip() != "none":
+            continue
+        if not encloses_area(elem.path):
+            continue
+        stretch = min_stretch(transform_within(elem, template))
+        if stretch <= 0:
+            continue
+        set_props(
+            elem,
+            {
+                "stroke": fill,
+                "stroke-opacity": str(style.get("fill-opacity", "1")),
+                "stroke-width": num(2 * grow / stretch),
+                "stroke-linejoin": "round",
+                "stroke-linecap": "round",
+                "stroke-dasharray": "none",
+                "paint-order": "stroke",
+                "vector-effect": "none",
+            },
+        )
 
 
 def paint_order(spec) -> list[str]:
@@ -270,9 +312,14 @@ def paint_style(spec, prop: str) -> dict:
     return style
 
 
-def tile_group(svg, group_id: str, clip_id: str, part: Part, reset: bool):
+def tile_group(svg, group_id: str, clip_id: str, part: Part, reset: bool, bleed: float = 0.0):
     """Make a group with one copy of the tile content for each tile of part.
-    reset goes to styled_copy()."""
+    reset goes to styled_copy().
+
+    With a bleed above 0, the copies overlap their neighbors by bleed user
+    units, so no light line shows where two tiles meet. The tile clip grows by
+    that distance, and each filled shape gets a stroke of its fill paint (see
+    add_bleed())."""
     group = inkex.Group()
     group.set("id", unique_id(svg, group_id))
     template = inkex.Group()
@@ -280,11 +327,15 @@ def tile_group(svg, group_id: str, clip_id: str, part: Part, reset: bool):
     viewport = (svg.viewbox_width, svg.viewbox_height)
     for original in part.pattern.content:
         template.append(styled_copy(original, reset, viewport))
+    grow = overlap_of(part.plan, bleed) if bleed > 0 else 0.0
+    # The check comes before add_bleed(): the bleed stroke goes past the tile box.
     clip = (
-        tile_clip(svg, clip_id, part.plan.tile)
+        tile_clip(svg, clip_id, part.plan.tile, grow)
         if needs_tile_clip(template, part.plan.tile, viewport)
         else None
     )
+    if grow:
+        add_bleed(template, grow)
 
     for i, j in part.plan.cells:
         cell = inkex.Group()
@@ -317,13 +368,16 @@ def stroke_mask(svg, eid: str, shape, spec, region: inkex.BoundingBox):
     return mask
 
 
-def flatten_element(elem, fill: Part | None, stroke: Part | None, ready_fill=None, bbox=None):
+def flatten_element(
+    elem, fill: Part | None, stroke: Part | None, ready_fill=None, bbox=None, bleed: float = 0.0
+):
     """Replace the pattern fill and the pattern stroke of elem with flat layers.
     fill or stroke is None when that paint stays on elem.
 
     The fill layer is ready_fill when the caller gives one, for example from
     merged mode. Else each layer holds clipped copies of the tile content.
-    bbox is the geometric box of elem (see output_group())."""
+    bbox is the geometric box of elem (see output_group()). bleed goes to
+    tile_group()."""
     svg = elem.root
     spec = elem.specified_style()
     reset = bool(svg.xpath("//svg:style"))
@@ -332,9 +386,9 @@ def flatten_element(elem, fill: Part | None, stroke: Part | None, ready_fill=Non
     if ready_fill is not None:
         layers["fill"] = ready_fill
     elif fill is not None:
-        layers["fill"] = fill_layer(elem, spec, fill, reset)
+        layers["fill"] = fill_layer(elem, spec, fill, reset, bleed)
     if stroke is not None:
-        layers["stroke"] = stroke_layer(elem, spec, stroke, reset)
+        layers["stroke"] = stroke_layer(elem, spec, stroke, reset, bleed)
     set_props(elem, dict.fromkeys(layers, "none"))
 
     order = paint_order(spec)
@@ -476,10 +530,11 @@ def fraction(text, default: str) -> float:
     return length.value / 100 if length.unit == "%" else length.value
 
 
-def fill_layer(elem, spec, part: Part, reset: bool):
-    """Return the tiles of the fill, clipped to the shape of elem."""
+def fill_layer(elem, spec, part: Part, reset: bool, bleed: float = 0.0):
+    """Return the tiles of the fill, clipped to the shape of elem. bleed goes to
+    tile_group()."""
     svg, eid = elem.root, elem.get_id()
-    tiles = tile_group(svg, f"{eid}-fill", f"{eid}-tile", part, reset)
+    tiles = tile_group(svg, f"{eid}-fill", f"{eid}-tile", part, reset, bleed)
     shape = geometry_copy(elem)
     set_props(shape, {"clip-rule": str(spec.get("fill-rule", "nonzero"))})
     tiles.clip = add_clip(svg, f"{eid}-shape", shape)
@@ -487,10 +542,11 @@ def fill_layer(elem, spec, part: Part, reset: bool):
     return tiles
 
 
-def stroke_layer(elem, spec, part: Part, reset: bool):
-    """Return the tiles of the stroke, masked to the stroke area of elem."""
+def stroke_layer(elem, spec, part: Part, reset: bool, bleed: float = 0.0):
+    """Return the tiles of the stroke, masked to the stroke area of elem. bleed
+    goes to tile_group()."""
     svg, eid = elem.root, elem.get_id()
-    tiles = tile_group(svg, f"{eid}-stroke", f"{eid}-stroke-tile", part, reset)
+    tiles = tile_group(svg, f"{eid}-stroke", f"{eid}-stroke-tile", part, reset, bleed)
     mask = stroke_mask(svg, eid, geometry_copy(elem), spec, part.region)
     set_props(tiles, {**paint_style(spec, "stroke"), "mask": f"url(#{mask.get_id()})"})
     return tiles

@@ -59,6 +59,14 @@ stroke, a mask with the shape of the stroke hides the rest.
 The result is exact. You can edit each copy. Some cutters do not support
 masks. For these cutters, use merged outlines for the fill.
 
+Shapes that meet at a tile edge can show a thin light line on the screen.
+The renderer smooths the edge of each copy, and the two edges do not cover the
+pixel fully. To hide these lines, select "Overlap clipped copies to hide
+seams". Each filled shape then grows by the seam bleed, 0.2 px by default. In
+tests with Inkscape and rsvg at 96 to 300 dpi, 0.2 px left at most 2 light
+pixels on a full page. Tile content with an opacity
+below 1 gets a slightly darker line at each edge.
+
 ### Merged outlines
 
 The extension converts the strokes of the tile to paths and makes one filled
@@ -87,6 +95,8 @@ The extension makes clipped copies, and shows a message, in these cases:
 | Remove unused pattern definitions | On | Removes the patterns, clips, masks and filters that nothing uses after the change. |
 | Maximum number of tiles | 2000 | Stops the extension when the selection needs more tiles. |
 | Seam overlap (merged mode) | 0.01 | Makes each tile larger by this distance in user units. This prevents thin gaps between merged tiles. |
+| Overlap clipped copies to hide seams | Off | Makes the shapes in each clipped copy larger by the seam bleed. |
+| Seam bleed (px) | 0.2 | Sets the distance for the option above, in px (1/96 in). |
 | Match the Inkscape view, not the SVG standard | Off | Keeps the Inkscape view of patterns with `objectBoundingBox` units. |
 
 ### Patterns with objectBoundingBox units
