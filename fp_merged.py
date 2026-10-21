@@ -14,6 +14,7 @@ of Inkscape takes about 1.5 s. One path with all copies makes step 2 about 12
 times faster than one path for each tile (see docs/spike-merged-mode.md).
 """
 
+import math
 import os
 from tempfile import TemporaryDirectory
 from typing import NamedTuple
@@ -36,7 +37,6 @@ from fp_clipped import (
 from fp_svg import (
     NON_RENDERED,
     RESET_STYLE,
-    below_one,
     box_path,
     fmt_path,
     fmt_transform,
@@ -59,7 +59,7 @@ class MergeError(Exception):
 class Content(NamedTuple):
     shapes: list  # copies of the painted shapes, with their transform to pattern space
     colors: list[str]  # the painted colors, in paint order
-    translucent: bool  # True when a painted shape has an opacity below 1
+    opacity: float  # the lowest opacity of a painted shape, 1 when all are opaque
 
 
 class Merged(NamedTuple):
@@ -209,19 +209,15 @@ def hidden(elem, top) -> bool:
     return any(str(n.style.get("display", "inline")) == "none" for n in up_to(elem, top))
 
 
-def opacities(elem, top, props) -> list[str]:
-    """Return the opacity of elem and the groups up to top, then the
-    fill-opacity or stroke-opacity of elem for each paint in props.
+def shown_opacity(elem, top, props) -> float:
+    """Return the lowest opacity with which a paint in props of elem shows: the
+    product of the opacity of elem and the groups up to top, and the
+    lowest fill-opacity or stroke-opacity of elem.
 
     The copies have their full specified style, so elem holds the inherited
     fill-opacity and stroke-opacity."""
-    values = [n.style.get("opacity", "1") for n in up_to(elem, top)]
-    return values + [elem.style.get(f"{p}-opacity", "1") for p in props]
-
-
-def translucent(elem, top, props) -> bool:
-    """Return True when the paints props of elem show with an opacity below 1."""
-    return any(below_one(v) for v in opacities(elem, top, props))
+    groups = math.prod(opacity_value(n.style.get("opacity", "1")) for n in up_to(elem, top))
+    return groups * min(opacity_value(elem.style.get(f"{p}-opacity", "1")) for p in props)
 
 
 def has_area(path: inkex.Path) -> bool:
@@ -239,7 +235,7 @@ def paints(elem, top) -> dict:
         value = str(elem.style.get(prop, initial)).strip()
         if value == "none" or (prop == "fill" and not has_area(elem.path)):
             continue
-        if any(opacity_value(v) <= 0 for v in opacities(elem, top, [prop])):
+        if shown_opacity(elem, top, [prop]) <= 0:
             continue
         if value.startswith("url("):
             raise MergeError(f"The tile content has a {prop} with a paint server.")
@@ -276,7 +272,7 @@ def content_of(part: Part, reset: bool, viewport: tuple[float, float]) -> Conten
     template.set("transform", fmt_transform(part.plan.content))
     for original in part.pattern.content:
         template.append(styled_copy(original, reset, viewport))
-    shapes, colors, opacity = [], [], False
+    shapes, colors, opacity = [], [], 1.0
     for elem in rendered(template):
         if elem.TAG in UNBOUNDED:
             raise MergeError(f"The tile content has a <{elem.TAG}> element.")
@@ -290,7 +286,7 @@ def content_of(part: Part, reset: bool, viewport: tuple[float, float]) -> Conten
             continue
         shapes.append(shape_copy(elem, transform_within(elem, template)))
         colors += found.values()
-        opacity = opacity or translucent(elem, template, found)
+        opacity = min(opacity, shown_opacity(elem, template, found))
     return Content(shapes, colors, opacity)
 
 

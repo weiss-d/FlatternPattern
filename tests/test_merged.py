@@ -28,6 +28,7 @@ from test_flatten import (
 )
 
 import fp_merged
+from flatternpattern import merge_notes, opacity_text
 
 MERGED = "--mode=merged"
 SCALE = 2
@@ -125,7 +126,7 @@ def test_merged_notes():
         in (merged(os.path.join(FLATTEN, "stroke.svg"))[1])
     )
     # The opacity of the target itself stays on the output group, so it gives no note.
-    assert "opacity below 1" not in merged(os.path.join(FLATTEN, "opacity_order.svg"))[1]
+    assert "lowest opacity" not in merged(os.path.join(FLATTEN, "opacity_order.svg"))[1]
 
 
 @pytest.mark.inkscape
@@ -138,7 +139,10 @@ def test_merged_notes_opacity(tmp_path, capsys):
         '<rect id="r" class="target" width="50" height="50" fill="url(#p)"/></svg>'
     )
     flatten(str(path), MERGED)
-    assert "#r has an opacity below 1. The merged path is opaque." in capsys.readouterr().err
+    assert (
+        "The lowest opacity in the tile content of #r is 0.5. The merged path is opaque."
+        in capsys.readouterr().err
+    )
 
 
 def test_merged_without_inkscape_makes_clipped_copies(monkeypatch, capsys):
@@ -216,14 +220,30 @@ def test_paint_with_opacity_0_paints_nothing(style, expected):
     assert fp_merged.paints(rect, rect) == expected
 
 
-def test_translucent_content():
+def test_shown_opacity():
     group = inkex.Group(style="opacity:0.5")
-    rect = inkex.Rectangle(width="1", height="1", style="fill-opacity:0.5")
+    rect = inkex.Rectangle(width="1", height="1", style="fill-opacity:0.5;stroke-opacity:2")
     group.append(rect)
-    assert fp_merged.translucent(rect, group, {"stroke": "#000"})
-    assert fp_merged.translucent(rect, rect, {"fill": "#000"})
-    # The fill-opacity does not matter when only the stroke paints.
-    assert not fp_merged.translucent(rect, rect, {"stroke": "#000"})
+    assert fp_merged.shown_opacity(rect, group, {"fill": "#000", "stroke": "#000"}) == 0.25
+    assert fp_merged.shown_opacity(rect, rect, {"fill": "#000"}) == 0.5
+    # The fill-opacity does not matter when only the stroke paints. A renderer
+    # clamps the stroke-opacity to 1.
+    assert fp_merged.shown_opacity(rect, rect, {"stroke": "#000"}) == 1
+
+
+@pytest.mark.parametrize(("opacity", "noted"), [(0.5, True), (0.989, True), (0.994819, False)])
+def test_opacity_note_skips_values_near_one(opacity, noted):
+    rect = inkex.Rectangle(id="r")
+    notes = merge_notes(rect, fp_merged.Content([], ["#000"], opacity))
+    assert any("lowest opacity" in n for n in notes) == noted
+
+
+@pytest.mark.parametrize(
+    ("opacity", "text"),
+    [(0.5, "0.5"), (0.29, "0.29"), (0.98999, "0.9899"), (0.00001, "0.0001"), (0.125, "0.125")],
+)
+def test_opacity_text_rounds_down_with_4_decimals(opacity, text):
+    assert opacity_text(opacity) == text
 
 
 def test_merged_fill_that_paints_nothing_is_removed(tmp_path, capsys):

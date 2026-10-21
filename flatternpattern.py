@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """FlatternPattern: replace pattern fills and strokes with real, tiled geometry."""
 
+import math
 from typing import NamedTuple
 
 import inkex
@@ -15,6 +16,9 @@ from fp_tiling import TileLimitError, inkscape_view_differs, plan, shape_path, s
 
 TEXT_ROOTS = (inkex.TextElement, inkex.FlowRoot)
 STROKE_NOTE = "merged mode does not merge pattern strokes."
+# Merged mode notes tile content with a lower opacity. Inkscape stock patterns
+# have values such as fill-opacity:0.994819, which show as opaque.
+NOTE_OPACITY = 0.99
 
 
 class Target(NamedTuple):
@@ -291,11 +295,20 @@ def merge_notes(elem, content) -> list[str]:
             f"The tile content of {label(elem)} has more than one color. "
             f"The merged path uses the first color, {content.colors[0]}."
         )
-    if content.translucent:
+    if content.opacity < NOTE_OPACITY:
         notes.append(
-            f"The tile content of {label(elem)} has an opacity below 1. The merged path is opaque."
+            f"The lowest opacity in the tile content of {label(elem)} is "
+            f"{opacity_text(content.opacity)}. The merged path is opaque."
         )
     return notes
+
+
+def opacity_text(opacity: float) -> str:
+    """Return opacity with at most 4 decimals, rounded down, so that a value
+    below NOTE_OPACITY never shows as NOTE_OPACITY. A value above 0 shows as
+    0.0001 or more."""
+    shown = max(math.floor(round(opacity * 10000, 6)) / 10000, 0.0001)
+    return f"{shown:.4f}".rstrip("0").rstrip(".")
 
 
 def processed_patterns(jobs, empty) -> list:
