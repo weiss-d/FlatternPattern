@@ -223,6 +223,17 @@ def test_reference_transform_cells_cover_region():
     )
 
 
+# Areas
+
+
+@pytest.mark.parametrize(
+    ("d", "expected"),
+    [("M 0 4 H 8", False), ("M 0 0 L 10 10", False), ("M 0 0 H 10 V 10", True)],
+)
+def test_encloses_area(d, expected):
+    assert ft.encloses_area(inkex.Path(d)) is expected
+
+
 # Plan
 
 

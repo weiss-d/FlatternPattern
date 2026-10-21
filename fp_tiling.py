@@ -327,6 +327,11 @@ def area(poly) -> float:
     return 0.5 * abs(sum(a[0] * b[1] - b[0] * a[1] for a, b in pairs))
 
 
+def encloses_area(path: inkex.Path) -> bool:
+    """Return True when a subpath of path encloses an area, so a fill paints."""
+    return any(area([tuple(p) for node in sub for p in node]) > 0 for sub in path.to_superpath())
+
+
 def cells(tile: Tile, transform: inkex.Transform, region: inkex.BoundingBox):
     """Yield the (i, j) index of each tile that shares an area with region, row by row.
 
@@ -367,6 +372,11 @@ def plan(
 def area_scale(transform: inkex.Transform) -> float:
     """Return the factor by which transform multiplies an area."""
     return abs(transform.a * transform.d - transform.b * transform.c)
+
+
+def overlap_of(tile_plan: TilePlan, tolerance: float) -> float:
+    """Return the seam overlap in pattern space. tolerance is in user units."""
+    return tolerance / area_scale(tile_plan.transform) ** 0.5
 
 
 def has_no_area(transform: inkex.Transform, region: inkex.BoundingBox) -> bool:

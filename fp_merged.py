@@ -45,7 +45,7 @@ from fp_svg import (
     set_raw,
     unique_id,
 )
-from fp_tiling import area, area_scale, tile_transform
+from fp_tiling import encloses_area, overlap_of, tile_transform
 
 # Content with one of these properties cannot become one filled path. A
 # vector-effect makes the stroke width depend on the screen, not on the tile.
@@ -220,11 +220,6 @@ def shown_opacity(elem, top, props) -> float:
     return groups * min(opacity_value(elem.style.get(f"{p}-opacity", "1")) for p in props)
 
 
-def has_area(path: inkex.Path) -> bool:
-    """Return True when a subpath of path encloses an area, so a fill paints."""
-    return any(area([tuple(p) for node in sub for p in node]) > 0 for sub in path.to_superpath())
-
-
 def paints(elem, top) -> dict:
     """Return the color of each paint that elem shows: the fill, then the stroke.
 
@@ -233,7 +228,7 @@ def paints(elem, top) -> dict:
     found = {}
     for prop, initial in (("fill", "black"), ("stroke", "none")):
         value = str(elem.style.get(prop, initial)).strip()
-        if value == "none" or (prop == "fill" and not has_area(elem.path)):
+        if value == "none" or (prop == "fill" and not encloses_area(elem.path)):
             continue
         if shown_opacity(elem, top, [prop]) <= 0:
             continue
@@ -300,11 +295,6 @@ def rendered(elem):
         yield from rendered(child)
 
 
-def overlap_of(part: Part, tolerance: float) -> float:
-    """Return the seam overlap in pattern space. tolerance is in user units."""
-    return tolerance / area_scale(part.plan.transform) ** 0.5
-
-
 def tile_key(part: Part, tolerance: float):
     """Return a key for the tile path: equal keys give equal tile paths."""
     plan = part.plan
@@ -312,7 +302,7 @@ def tile_key(part: Part, tolerance: float):
         id(part.pattern),
         tuple(plan.content.to_hexad()),
         plan.tile,
-        overlap_of(part, tolerance),
+        overlap_of(plan, tolerance),
     )
 
 
@@ -321,7 +311,7 @@ def tile_paths(tiles: dict, tolerance: float, frame: dict) -> dict:
     to the tile box. tiles maps each key of tile_key() to (part, content)."""
     items = []
     for k, (part, content) in enumerate(tiles.values()):
-        t, grow = part.plan.tile, overlap_of(part, tolerance)
+        t, grow = part.plan.tile, overlap_of(part.plan, tolerance)
         box = black(inkex.PathElement(), f"tile{k}")
         set_raw(
             box, "d", box_path(t.x - grow, t.y - grow, t.x + t.width + grow, t.y + t.height + grow)

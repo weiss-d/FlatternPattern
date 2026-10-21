@@ -194,14 +194,6 @@ def test_many_targets_use_one_run_for_each_step(tmp_path, monkeypatch, capsys):
     assert len(calls) == 2  # one run for the tile, one for all targets
 
 
-@pytest.mark.parametrize(
-    ("d", "expected"),
-    [("M 0 4 H 8", False), ("M 0 0 L 10 10", False), ("M 0 0 H 10 V 10", True)],
-)
-def test_has_area(d, expected):
-    assert fp_merged.has_area(inkex.Path(d)) is expected
-
-
 def test_line_fill_does_not_count_as_color():
     line = inkex.PathElement(d="M 0 4 H 8", style="stroke:#c00")
     assert fp_merged.paints(line, line) == {"stroke": "#c00"}
