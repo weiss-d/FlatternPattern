@@ -89,9 +89,9 @@ each pull request. The test job uses Ubuntu 24.04 and Inkscape 1.4.4 from the
 Inkscape PPA. The developer also runs the tests before each push of a version
 change.
 
-The tests run 97 % of the statements in the extension code (coverage.py,
-2026-10-22). The coverage badge shows the value from the last CI run on
-`main`.
+The coverage badge at the top of this file shows the part of the statements
+in the extension code that the tests run. The value comes from the last CI
+run on `main`.
 
 ## Install
 
