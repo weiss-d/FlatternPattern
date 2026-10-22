@@ -83,14 +83,17 @@ def test_lines_tile_count_and_clip():
     # x 10..190 and y 10..190 with a 41 x 71 tile from (0, 0): 5 columns, 3 rows.
     assert len(cells) == 15
     # The round caps of the lines go past the tile edge, so each cell gets the tile clip.
-    assert all(c.get("clip-path") == "url(#target-tile)" for c in cells)
+    assert all(c.style.get("clip-path") == "url(#target-tile)" for c in cells)
     assert doc.getElementById("target-shape") is not None
+    # The only content element, a group, takes the place of the tile group.
+    assert cells[0].TAG == "g"
+    assert {c.TAG for c in cells[0]} == {"path"}
 
 
 def test_filled_content_inside_tile_has_no_tile_clip():
     doc = load(flatten("filled_shapes.svg"))
     assert doc.getElementById("target-tile") is None
-    assert all(c.get("clip-path") is None for c in doc.getElementById("target-fill"))
+    assert all(c.style.get("clip-path") is None for c in doc.getElementById("target-fill"))
 
 
 def test_overflowing_content_gets_tile_clip():
@@ -119,7 +122,7 @@ def test_transforms_keep_full_precision():
 def test_content_does_not_inherit_from_target():
     doc = load(flatten("style_leak.svg"))
     fill = doc.getElementById("target-fill")
-    triangle, line = fill[0][0][0], fill[0][0][1]
+    triangle, line = fill[0][0], fill[0][1]
     assert triangle.specified_style().get("stroke") == "none"
     assert triangle.specified_style().get("fill") == "black"
     assert line.specified_style().get("stroke") == "#0a0"
@@ -400,8 +403,9 @@ def test_content_transform_keeps_full_precision(tmp_path):
         '<rect id="r" class="target" width="50" height="50" fill="url(#p)"/></svg>'
     )
     doc = load(flatten(str(path)))
-    content = doc.getElementById("r-fill")[0][0]
-    assert content.attrib["transform"] == "matrix(1 0 0 1 0.123456789 0)"
+    content = doc.getElementById("r-fill")[0]
+    # The first tile is i = -1: T_ij moves C, translate(0.123456789, 0), by -10.
+    assert content.attrib["transform"] == "matrix(1 0 0 1 -9.876543211 0)"
 
 
 @pytest.mark.parametrize(

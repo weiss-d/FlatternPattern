@@ -29,7 +29,7 @@ def first_tile(tmp_path, *args):
     path.write_text(DOC)
     doc = load(flatten(str(path), *args))
     cell = doc.getElementById("r-fill")[0]
-    return doc, cell, list(cell[0])
+    return doc, cell, list(cell)
 
 
 def stroke_of(elem) -> str:
@@ -56,8 +56,8 @@ def test_bleed_strokes_filled_shapes_only(tmp_path):
 
 def test_bleed_makes_tile_clip_larger(tmp_path):
     doc, cell, _ = first_tile(tmp_path, *BLEED)
-    clip = doc.getElementById(cell.get("clip-path")[5:-1])
-    assert clip[0].get("d") == "M -0.005 -0.005 H 10.005 V 10.005 H -0.005 Z"
+    clip = doc.getElementById(cell.style.get("clip-path")[5:-1])
+    assert clip[0].get("d") == "M -0.005 -0.005 L 10.005 -0.005 L 10.005 10.005 L -0.005 10.005 Z"
 
 
 def lighter_pixels(before, after) -> int:

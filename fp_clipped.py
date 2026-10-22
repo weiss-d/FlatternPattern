@@ -5,8 +5,8 @@ The output replaces the target at the same place in the document:
 
     <g id="ID-flat" transform=... clip-path/mask/filter/opacity/display=...>
       <g id="ID-fill" clip-path="url(#ID-shape)" style="RESET; opacity">
-        <g transform="T_ij" [clip-path="url(#ID-tile)"]>  one for each tile
-          <g transform="C"> styled copies of the tile content </g>
+        <g transform="T_ij * C" [clip-path="url(#ID-tile)"]>  one for each tile
+          styled copies of the tile content
         </g>
       </g>
       <g id="ID-stroke" mask="url(#ID-stroke-mask)" style="RESET; opacity">
@@ -17,7 +17,8 @@ The output replaces the target at the same place in the document:
 
 The fill group is only there for a pattern fill, and the stroke group only for
 a pattern stroke. Each group goes at the place that paint-order gives. The tile
-clip is only there when the content can show outside the tile box.
+clip is only there when the content can show outside the tile box. When the
+tile content is one element, that element takes the place of the tile group.
 """
 
 from copy import deepcopy
@@ -30,6 +31,7 @@ from fp_svg import (
     RESET_STYLE,
     below_one,
     box_path,
+    fmt_path,
     fmt_transform,
     num,
     renamed_copy,
@@ -42,6 +44,7 @@ from fp_svg import (
 )
 from fp_tiling import (
     TilePlan,
+    area_scale,
     box_of,
     encloses_area,
     min_stretch,
@@ -259,12 +262,15 @@ def geometry_copy(elem):
     return copy
 
 
-def tile_clip(svg, wanted_id: str, tile, grow: float = 0.0):
-    """Add a clip of the tile box, larger by grow on each side, and return it."""
+def tile_clip(svg, wanted_id: str, tile, grow: float, inner: inkex.Transform):
+    """Add a clip of the tile box, larger by grow on each side, and return it.
+    inner goes from the coordinates of the clipped element to pattern space."""
     box = box_path(
         tile.x - grow, tile.y - grow, tile.x + tile.width + grow, tile.y + tile.height + grow
     )
-    return add_clip(svg, wanted_id, path_element(box))
+    # A content transform with no area paints nothing, so any clip is correct.
+    local = -inner if area_scale(inner) else inkex.Transform()
+    return add_clip(svg, wanted_id, path_element(fmt_path(inkex.Path(box).transform(local))))
 
 
 def add_bleed(template, grow: float):
@@ -329,15 +335,23 @@ def tile_group(svg, group_id: str, clip_id: str, part: Part, reset: bool, bleed:
     With a bleed above 0, the copies overlap their neighbors by bleed user
     units, so no light line shows where two tiles meet. The tile clip grows by
     that distance, and each filled shape gets a stroke of its fill paint (see
-    add_bleed())."""
+    add_bleed()).
+
+    Each tile is one element with the transform T_ij * C: a group with the
+    content, or the content element itself when it is the only one (see
+    single_child())."""
     group = inkex.Group()
     group.set("id", unique_id(svg, group_id))
     viewport = (svg.viewbox_width, svg.viewbox_height)
     template = template_of(part, reset, viewport)
+    single = single_child(template)
+    inner = part.plan.content
+    if single is not None:
+        inner = inner @ inkex.Transform(single.attrib.get("transform"))
     grow = overlap_of(part.plan, bleed) if bleed > 0 else 0.0
     # The check comes before add_bleed(): the bleed stroke goes past the tile box.
     clip = (
-        tile_clip(svg, clip_id, part.plan.tile, grow)
+        tile_clip(svg, clip_id, part.plan.tile, grow, inner)
         if needs_tile_clip(template, part.plan.tile, viewport)
         else None
     )
@@ -345,13 +359,31 @@ def tile_group(svg, group_id: str, clip_id: str, part: Part, reset: bool, bleed:
         add_bleed(template, grow)
 
     for i, j in part.plan.cells:
-        cell = inkex.Group()
-        set_raw(cell, "transform", fmt_transform(tile_transform(part.plan, i, j)))
+        if single is not None:
+            cell = deepcopy(single)
+        else:
+            cell = inkex.Group()
+            cell.extend([deepcopy(child) for child in template])
+        set_raw(cell, "transform", fmt_transform(tile_transform(part.plan, i, j) @ inner))
         if clip is not None:
-            cell.clip = clip
-        cell.append(deepcopy(template))
+            set_props(cell, {"clip-path": f"url(#{clip.get_id()})"})
         group.append(cell)
     return group
+
+
+def single_child(template):
+    """Return the only child of template when it can take the transform and the
+    tile clip of a tile itself, else None.
+
+    A child with its own clip-path cannot also take the tile clip. A nested
+    <svg> cannot take a transform in SVG 1.1."""
+    children = list(template)
+    if len(children) != 1:
+        return None
+    child = children[0]
+    if child.TAG == "svg" or str(child.style.get("clip-path", "none")) != "none":
+        return None
+    return child
 
 
 def stroke_mask(svg, eid: str, shape, spec, region: inkex.BoundingBox):
