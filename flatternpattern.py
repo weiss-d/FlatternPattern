@@ -248,28 +248,31 @@ def apply(
         parts.setdefault(job.target.elem, {})[job.target.prop] = job.part
     if keep_original:
         keep_originals(dict.fromkeys([*parts, *(t.elem for t in empty)]))
+    # All elements are in one document, so one search for a stylesheet is enough.
+    reset = bool(parts) and bool(next(iter(parts)).root.xpath("//svg:style"))
     no_merge = ({}, [], [])
-    layers, removed, notes = no_merge if tolerance is None else merged_layers(parts, tolerance)
+    layers, removed, notes = (
+        no_merge if tolerance is None else merged_layers(parts, tolerance, reset)
+    )
     for elem in removed:
         del parts[elem]["fill"]
     empty = empty + [Target(elem, "fill", None) for elem in removed]
     for elem, paints in parts.items():
         if paints:
             fill, stroke = paints.get("fill"), paints.get("stroke")
-            flatten_element(elem, fill, stroke, layers.get(elem), boxes[elem], bleed)
+            flatten_element(elem, fill, stroke, reset, layers.get(elem), boxes[elem], bleed)
     for target in empty:
         set_props(target.elem, {target.prop: "none"})
     return notes, empty
 
 
-def merged_layers(parts: dict, tolerance: float):
+def merged_layers(parts: dict, tolerance: float, reset: bool):
     """Return (layers, removed, notes) for merged mode. layers maps each element
     to its merged fill layer. removed holds the elements whose fill paints
-    nothing. An element without a layer gets clipped copies."""
+    nothing. An element without a layer gets clipped copies. reset goes to
+    merge_fills()."""
     layers, removed, notes = {}, [], []
     fills = {elem: paints["fill"] for elem, paints in parts.items() if "fill" in paints}
-    # All elements are in one document, so one search for a stylesheet is enough.
-    reset = bool(fills) and bool(next(iter(fills)).root.xpath("//svg:style"))
     failed: dict = {}  # the elements for each error text, for one note per error
     for elem, merged in merge_fills(fills, tolerance, reset).items():
         if isinstance(merged, MergeError):

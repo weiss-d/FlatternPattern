@@ -376,18 +376,22 @@ def stroke_mask(svg, eid: str, shape, spec, region: inkex.BoundingBox):
 
 
 def flatten_element(
-    elem, fill: Part | None, stroke: Part | None, ready_fill=None, bbox=None, bleed: float = 0.0
+    elem,
+    fill: Part | None,
+    stroke: Part | None,
+    reset: bool,
+    ready_fill=None,
+    bbox=None,
+    bleed: float = 0.0,
 ):
     """Replace the pattern fill and the pattern stroke of elem with flat layers.
-    fill or stroke is None when that paint stays on elem.
+    fill or stroke is None when that paint stays on elem. reset goes to tile_group().
 
     The fill layer is ready_fill when the caller gives one, for example from
     merged mode. Else each layer holds clipped copies of the tile content.
     bbox is the geometric box of elem (see output_group()). bleed goes to
     tile_group()."""
-    svg = elem.root
     spec = elem.specified_style()
-    reset = bool(svg.xpath("//svg:style"))
     group = output_group(elem, bbox)
     layers = {}
     if ready_fill is None and fill is not None:
