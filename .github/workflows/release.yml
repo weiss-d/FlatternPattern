@@ -1,0 +1,49 @@
+name: Release
+
+# Makes a draft GitHub release with the extension zip for each version tag.
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # Create the release and upload the zip
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # The main check below needs the history
+          persist-credentials: false
+      - name: Check the tag against main and the version
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "Tag $GITHUB_REF_NAME is not on main"; exit 1; }
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          test "$GITHUB_REF_NAME" = "v$version" || { echo "Tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      # Same files as the zip of v0.1.1: no top folder, so users extract it into the extensions folder.
+      - name: Make the zip
+        run: git archive --format=zip -o "flatternpattern-$VERSION.zip" HEAD LICENSE flatternpattern.inx ./*.py
+      - name: Write the release notes
+        run: |
+          # Release pages show each line break, so join the wrapped lines of a list item.
+          # Leading blank lines are skipped, so a section with no text gives an empty file.
+          awk -v v="## [$VERSION]" '
+            index($0, v) == 1 {on = 1; next}
+            /^## \[|^\[.*\]: / {on = 0}
+            !on || (!n && /^$/) {next}
+            /^ +[^ ]/ && !/^ *([-*+]|[0-9]+\.) / && n {sub(/^ +/, ""); line[n] = line[n] " " $0; next}
+            {line[++n] = $0}
+            END {for (i = 1; i <= n; i++) print line[i]}
+          ' CHANGELOG.md > notes.md
+          test -s notes.md || { echo "CHANGELOG.md has no section for $VERSION"; exit 1; }
+          # Link to the README so the install steps stay in one place.
+          printf '\n### Install\n\nDownload `flatternpattern-%s.zip`, then follow the [install steps](%s/blob/%s/README.md#install).\n' \
+            "$VERSION" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" >> notes.md
+      # A draft lets the maintainer read the notes before the release is public.
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "flatternpattern-$VERSION.zip" --draft --title "$GITHUB_REF_NAME" --notes-file notes.md

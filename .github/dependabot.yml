@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Updates the SHA pins and their version comments in the workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: develop
+    commit-message:
+      prefix: ci(repo)

@@ -1,0 +1,40 @@
+name: Bug report
+description: The extension gives a wrong result, an error or no result.
+labels: [bug]
+body:
+  - type: input
+    id: inkscape
+    attributes:
+      label: Inkscape version
+      description: Help > About Inkscape shows the version.
+      placeholder: 1.4.4 (dcaf3e7d9e)
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Operating system
+      placeholder: Ubuntu 24.04, Windows 11, macOS 15
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Output mode
+      options:
+        - Clipped copies
+        - Merged outlines
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened
+      description: Tell what you expected and what you got. Copy the full text of an error message.
+    validations:
+      required: true
+  - type: textarea
+    id: file
+    attributes:
+      label: SVG file
+      description: Attach a small SVG file that shows the problem. Drag the file into this box.

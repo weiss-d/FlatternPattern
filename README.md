@@ -268,6 +268,10 @@ each pull request. The test job uses Ubuntu 24.04 and Inkscape 1.4.4 from the
 Inkscape PPA. The developer also runs the tests before each push of a version
 change.
 
+A second workflow runs all tests with the nightly build of Inkscape 1.5 from
+the Inkscape trunk PPA. It runs for each push to `main`, each pull request
+and each Monday. Its result does not block a merge.
+
 The coverage badge at the top of this file shows the part of the statements
 in the extension code that the tests run. The value comes from the last CI
 run on `main`.
@@ -290,6 +294,11 @@ The tests import `inkex` from `/usr/share/inkscape/extensions`. To use
 another folder, set the `INKSCAPE_EXTENSIONS_DIR` environment variable. The
 render tests need the `inkscape` and `rsvg-convert` commands. If a command is
 not available, pytest skips the tests that need it.
+
+To make a release, push a tag `vX.Y.Z` on a commit on `main`. The tag must
+match the version in `pyproject.toml`, and `CHANGELOG.md` must have a section
+for it. The release workflow then makes a draft release with the zip file.
+Read the draft and publish it on GitHub.
 
 `docs/spike-merged-mode.md` records the test of the Inkscape actions that
 the merged outlines mode uses.
