@@ -30,8 +30,9 @@ The result is one filled path.
 
 ## Contents
 
+For users:
+
 - [Requirements](#requirements)
-- [Tested with](#tested-with)
 - [Install](#install)
 - [Use](#use)
 - [Output modes](#output-modes)
@@ -41,57 +42,22 @@ The result is one filled path.
   - [Patterns with objectBoundingBox units](#patterns-with-objectboundingbox-units)
   - [Clips, masks and filters on the object](#clips-masks-and-filters-on-the-object)
 - [Known limitations](#known-limitations)
-- [How it works](#how-it-works)
-- [Development](#development)
 - [Reporting issues](#reporting-issues)
+
+Technical details:
+
+- [How it works](#how-it-works)
+- [Tested with](#tested-with)
+- [Development](#development)
 - [How this was made](#how-this-was-made)
 - [License](#license)
 
 ## Requirements
 
-- Inkscape 1.4. The development used Inkscape 1.4.4 on Linux.
+- Inkscape 1.4. The tests use Inkscape 1.4.4 on Linux (see
+  [Tested with](#tested-with)).
 - No other packages. The extension uses the `inkex` package that comes with
   Inkscape.
-
-## Tested with
-
-- Inkscape 1.4.4 on Manjaro Linux, with the bundled `inkex` 1.4.0 and
-  Python 3.13.
-- Not tested on Windows or macOS yet.
-
-The automated test suite has 353 tests. The tests cover these items:
-
-- The `href` chain of a pattern: inherited attributes, cycles, missing targets.
-- Lengths with units, fractions and percentages.
-- `patternUnits`, `patternContentUnits`, `patternTransform`, `viewBox` and
-  `preserveAspectRatio`.
-- The tile range. A test compares it with a brute-force overlap check for
-  random transforms.
-- The stroke area: caps, joins, miter limits, dashes and markers.
-- Styles: inheritance from the pattern, not from the object, and stylesheets.
-- Clips, masks, filters and opacity on the object, and `paint-order`.
-- The selection: groups, text, clones, hatches and mesh gradients.
-- The two output modes, the fallback to clipped copies, and the tile limit.
-- The removal of unused definitions, and the `.inx` file.
-
-105 of the tests are render comparisons. Each test renders the input and the
-output to PNG with Inkscape or `rsvg-convert`. A pixel is different when one
-color channel changes by more than 64 of 255. The test fails when more than
-0.1 % of the pixels are different. The input files are the fixtures in
-`tests/data/flatten/` and five files made in the Inkscape GUI in
-`tests/data/real/`. Some inputs show a known difference between the renderers
-or a known limit of merged outlines. These tests are expected failures, each
-with its reason in the test file. One more test checks that the seam bleed
-removes at least 90 % of the light seam pixels.
-
-GitHub Actions runs the linters and all tests for each push to `main` and
-each pull request. The test job uses Ubuntu 24.04 and Inkscape 1.4.4 from the
-Inkscape PPA. The developer also runs the tests before each push of a version
-change.
-
-The coverage badge at the top of this file shows the part of the statements
-in the extension code that the tests run. The value comes from the last CI
-run on `main`.
 
 ## Install
 
@@ -103,9 +69,6 @@ release.
 2. Open the user extensions folder for your system (see the table).
 3. Extract the files from the zip file into that folder.
 4. Restart Inkscape.
-
-To install the development version, copy `flatternpattern.inx` and all the
-`.py` files in the top folder of this repository into the same folder.
 
 | System | User extensions folder |
 |---|---|
@@ -236,6 +199,12 @@ Other limits, with the behavior of the extension:
   object. It shows a message (see
   [Clips, masks and filters on the object](#clips-masks-and-filters-on-the-object)).
 
+## Reporting issues
+
+Report problems and requests on the
+[issue tracker](https://github.com/weiss-d/FlatternPattern/issues). Attach a
+small SVG file that shows the problem, if possible.
+
 ## How it works
 
 The extension does these steps for each object with a pattern paint:
@@ -263,7 +232,51 @@ The extension does these steps for each object with a pattern paint:
    slightly larger. The second run joins all tile copies and cuts them to the
    shape of the object. The result is one path.
 
+## Tested with
+
+- Inkscape 1.4.4 on Manjaro Linux, with the bundled `inkex` 1.4.0 and
+  Python 3.13.
+- Not tested on Windows or macOS yet.
+
+The automated test suite has 353 tests. The tests cover these items:
+
+- The `href` chain of a pattern: inherited attributes, cycles, missing targets.
+- Lengths with units, fractions and percentages.
+- `patternUnits`, `patternContentUnits`, `patternTransform`, `viewBox` and
+  `preserveAspectRatio`.
+- The tile range. A test compares it with a brute-force overlap check for
+  random transforms.
+- The stroke area: caps, joins, miter limits, dashes and markers.
+- Styles: inheritance from the pattern, not from the object, and stylesheets.
+- Clips, masks, filters and opacity on the object, and `paint-order`.
+- The selection: groups, text, clones, hatches and mesh gradients.
+- The two output modes, the fallback to clipped copies, and the tile limit.
+- The removal of unused definitions, and the `.inx` file.
+
+105 of the tests are render comparisons. Each test renders the input and the
+output to PNG with Inkscape or `rsvg-convert`. A pixel is different when one
+color channel changes by more than 64 of 255. The test fails when more than
+0.1 % of the pixels are different. The input files are the fixtures in
+`tests/data/flatten/` and five files made in the Inkscape GUI in
+`tests/data/real/`. Some inputs show a known difference between the renderers
+or a known limit of merged outlines. These tests are expected failures, each
+with its reason in the test file. One more test checks that the seam bleed
+removes at least 90 % of the light seam pixels.
+
+GitHub Actions runs the linters and all tests for each push to `main` and
+each pull request. The test job uses Ubuntu 24.04 and Inkscape 1.4.4 from the
+Inkscape PPA. The developer also runs the tests before each push of a version
+change.
+
+The coverage badge at the top of this file shows the part of the statements
+in the extension code that the tests run. The value comes from the last CI
+run on `main`.
+
 ## Development
+
+To install the development version, copy `flatternpattern.inx` and all the
+`.py` files in the top folder of this repository into the user extensions
+folder (see [Install](#install)).
 
 The development tools use [uv](https://docs.astral.sh/uv/).
 
@@ -280,12 +293,6 @@ not available, pytest skips the tests that need it.
 
 `docs/spike-merged-mode.md` records the test of the Inkscape actions that
 the merged outlines mode uses.
-
-## Reporting issues
-
-Report problems and requests on the
-[issue tracker](https://github.com/weiss-d/FlatternPattern/issues). Attach a
-small SVG file that shows the problem, if possible.
 
 ## How this was made
 
