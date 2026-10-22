@@ -4,7 +4,7 @@ import inkex
 import pytest
 from conftest import DATA
 
-from fp_resolve import Length, SkipError, parse_length, resolve
+from fp_resolve import Length, SkipError, chain, parse_length, resolve
 
 
 @pytest.fixture(scope="module")
@@ -14,6 +14,10 @@ def svg():
 
 def res(svg, pid):
     return resolve(svg.getElementById(pid))
+
+
+def chain_ids(svg, pid):
+    return tuple(n.get("id") for n in chain(svg.getElementById(pid)))
 
 
 def content_ids(rp):
@@ -40,7 +44,7 @@ def test_parse_length(value, expected):
 
 def test_wrapper_inherits_from_base(svg):
     rp = res(svg, "wrap")
-    assert rp.ids == ("wrap", "base")
+    assert chain_ids(svg, "wrap") == ("wrap", "base")
     assert content_ids(rp) == ["line"]
     assert text(rp.x, rp.y, rp.width, rp.height) == ("0", "0", "41", "71")
     assert rp.units == "userSpaceOnUse"
@@ -51,7 +55,7 @@ def test_wrapper_inherits_from_base(svg):
 
 def test_nearest_node_wins(svg):
     rp = res(svg, "wrap2")
-    assert rp.ids == ("wrap2", "wrap", "base")
+    assert chain_ids(svg, "wrap2") == ("wrap2", "wrap", "base")
     assert text(rp.x, rp.width, rp.height) == ("5", "20", "71")
     assert rp.transform == res(svg, "wrap").transform
     assert content_ids(rp) == ["line"]
@@ -80,7 +84,7 @@ def test_content_source(svg, pid, ids):
 
 
 def test_href_comes_before_xlink_href(svg):
-    assert res(svg, "both").ids == ("both", "bare")
+    assert chain_ids(svg, "both") == ("both", "bare")
 
 
 @pytest.mark.parametrize(
@@ -88,7 +92,7 @@ def test_href_comes_before_xlink_href(svg):
 )
 def test_invalid_href_ends_chain(svg, pid, width):
     rp = res(svg, pid)
-    assert rp.ids == (pid,)
+    assert chain_ids(svg, pid) == (pid,)
     assert text(rp.width) == (width,)
     assert rp.content == []
 

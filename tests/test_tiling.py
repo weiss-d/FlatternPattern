@@ -13,7 +13,6 @@ BBOX = inkex.BoundingBox((10, 50), (20, 40))  # x 10..50, y 20..40
 
 def rp(**kw):
     values = {
-        "ids": ("p",),
         "content": [],
         "x": "0",
         "y": "0",

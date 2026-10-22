@@ -74,7 +74,6 @@ def parse_length(text: str) -> Length:
 
 
 class ResolvedPattern(NamedTuple):
-    ids: tuple[str, ...]  # all ids in the chain. No code uses them yet.
     content: list  # child elements to copy, from the first node that has some
     x: Length
     y: Length
@@ -145,7 +144,6 @@ def resolve(pattern) -> ResolvedPattern:
     # The lengths passed LENGTH_RE in first_valid(), so parse_length() accepts them.
     first: dict = {attr: first_valid(nodes, attr) for attr in CHAIN_ATTRS}
     return ResolvedPattern(
-        ids=tuple(filter(None, (n.get("id") for n in nodes))),
         content=next((c for n in nodes if (c := content_of(n))), []),
         x=parse_length(first["x"]),
         y=parse_length(first["y"]),
