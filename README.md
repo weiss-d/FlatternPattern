@@ -1,5 +1,8 @@
 # FlatternPattern
 
+[![CI](https://github.com/weiss-d/FlatternPattern/actions/workflows/ci.yml/badge.svg)](https://github.com/weiss-d/FlatternPattern/actions/workflows/ci.yml)
+[![Coverage](https://raw.githubusercontent.com/weiss-d/FlatternPattern/python-coverage-comment-action-data/badge.svg)](https://github.com/weiss-d/FlatternPattern/tree/python-coverage-comment-action-data)
+
 FlatternPattern is an Inkscape extension. It replaces a pattern fill or a
 pattern stroke with real geometry. The result looks the same as the pattern,
 and plotters, cutters and other editors can use it.
@@ -81,8 +84,14 @@ or a known limit of merged outlines. These tests are expected failures, each
 with its reason in the test file. One more test checks that the seam bleed
 removes at least 90 % of the light seam pixels.
 
-The project has no CI. The tests run on the developer machine, before each
-push of a version change.
+GitHub Actions runs the linters and all tests for each push to `main` and
+each pull request. The test job uses Ubuntu 24.04 and Inkscape 1.4.4 from the
+Inkscape PPA. The developer also runs the tests before each push of a version
+change.
+
+The tests run 97 % of the statements in the extension code (coverage.py,
+2026-10-22). The coverage badge shows the value from the last CI run on
+`main`.
 
 ## Install
 
@@ -261,6 +270,8 @@ The development tools use [uv](https://docs.astral.sh/uv/).
 1. Install the tools with `uv sync`.
 2. Install the Git hooks with `uv run pre-commit install`.
 3. Run the tests with `uv run pytest`.
+4. To measure the coverage, run `uv run coverage run -m pytest`, then
+   `uv run coverage report`.
 
 The tests import `inkex` from `/usr/share/inkscape/extensions`. To use
 another folder, set the `INKSCAPE_EXTENSIONS_DIR` environment variable. The

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - run: uv sync
+      - run: uv run pre-commit run --all-files --show-diff-on-failure
+
+  test:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # Push the coverage badge and report to the data branch
+      pull-requests: write # Post the coverage comment on a pull request
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Ubuntu 24.04 has Inkscape 1.2. The Inkscape PPA has the 1.4 release.
+      - name: Install Inkscape and rsvg-convert
+        run: |
+          sudo add-apt-repository -y ppa:inkscape.dev/stable
+          sudo apt-get update
+          sudo apt-get install -y inkscape librsvg2-bin
+          inkscape --version
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - run: uv sync
+      - run: uv run coverage run -m pytest -q
+      # Writes the badge and the HTML report to the python-coverage-comment-action-data branch.
+      - name: Coverage comment
+        uses: py-cov-action/python-coverage-comment-action@e5fb2218463c3377f3504b0c5b5646ed53da7a2f # v4.5
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
