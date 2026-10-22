@@ -295,6 +295,11 @@ another folder, set the `INKSCAPE_EXTENSIONS_DIR` environment variable. The
 render tests need the `inkscape` and `rsvg-convert` commands. If a command is
 not available, pytest skips the tests that need it.
 
+To make a release, push a tag `vX.Y.Z` on a commit on `main`. The tag must
+match the version in `pyproject.toml`, and `CHANGELOG.md` must have a section
+for it. The release workflow then makes a draft release with the zip file.
+Read the draft and publish it on GitHub.
+
 `docs/spike-merged-mode.md` records the test of the Inkscape actions that
 the merged outlines mode uses.
 
