@@ -8,6 +8,9 @@ Inkscape 1.4 has "Objects to Pattern" and "Pattern to Objects". "Pattern to
 Objects" gives one tile only. FlatternPattern gives all the tiles that the
 object shows, cut to the shape of the object.
 
+Version: 0.1.1. The [change log](CHANGELOG.md) lists the changes in each
+release.
+
 ## Requirements
 
 - Inkscape 1.4. The development used Inkscape 1.4.4 on Linux.

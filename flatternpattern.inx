@@ -35,7 +35,9 @@ The extension skips these objects and shows a message:
 - hatch fills and mesh gradients
 - pattern strokes that do not scale with the object (vector-effect)
 
-If the number of tiles is more than the maximum, the extension stops and changes nothing.</label>
+If the number of tiles is more than the maximum, the extension stops and changes nothing.
+
+Version 0.1.1</label>
         </page>
     </param>
     <effect needs-live-preview="false">

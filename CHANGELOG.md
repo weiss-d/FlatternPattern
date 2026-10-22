@@ -4,7 +4,7 @@ This file records the changes in each release of FlatternPattern.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The version numbers follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.1] - 2026-10-22
 
 ### Fixed
 
@@ -28,5 +28,5 @@ First release.
   between the tiles.
 - Removal of the pattern definitions that nothing uses after the change.
 
-[Unreleased]: https://github.com/weiss-d/FlatternPattern/compare/v0.1.0...HEAD
+[0.1.1]: https://github.com/weiss-d/FlatternPattern/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/weiss-d/FlatternPattern/releases/tag/v0.1.0
