@@ -21,11 +21,14 @@ The tests ran on Linux only. Nobody tested the extension on Windows or macOS.
 Version: 0.1.1. The [change log](CHANGELOG.md) lists the changes in each
 release.
 
-1. Download `flatternpattern.inx` and all the `.py` files in the top folder of
-   this repository.
+1. Download the zip file from the
+   [latest release](https://github.com/weiss-d/FlatternPattern/releases/latest).
 2. Open the user extensions folder for your system (see the table).
-3. Copy the files into that folder.
+3. Extract the files from the zip file into that folder.
 4. Restart Inkscape.
+
+To install the development version, copy `flatternpattern.inx` and all the
+`.py` files in the top folder of this repository into the same folder.
 
 | System | User extensions folder |
 |---|---|
