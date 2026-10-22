@@ -52,9 +52,12 @@ repos:
 
   - repo: local
     hooks:
+      # Runs only on a push with a change to pyproject.toml, such as a version bump.
+      # A tag push does not run it, because pre-commit skips commits that the remote has.
       - id: pytest
         name: pytest
         entry: uv run pytest -q
         language: system
         pass_filenames: false
+        files: ^pyproject\.toml$
         stages: [pre-push]
