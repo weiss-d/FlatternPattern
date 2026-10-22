@@ -268,6 +268,10 @@ each pull request. The test job uses Ubuntu 24.04 and Inkscape 1.4.4 from the
 Inkscape PPA. The developer also runs the tests before each push of a version
 change.
 
+A second workflow runs all tests with the nightly build of Inkscape 1.5 from
+the Inkscape trunk PPA. It runs for each push to `main`, each pull request
+and each Monday. Its result does not block a merge.
+
 The coverage badge at the top of this file shows the part of the statements
 in the extension code that the tests run. The value comes from the last CI
 run on `main`.
