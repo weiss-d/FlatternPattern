@@ -37,14 +37,26 @@ MORE_COLORS = "The tile content has more than one color"
 MERGED_INKSCAPE_DIFFERS = {
     **INKSCAPE_DIFFERS,
     **dict.fromkeys(
-        ["filled_shapes.svg", "style_leak.svg", "viewbox_slice.svg", "transforms_px_units.svg"],
+        [
+            "filled_shapes.svg",
+            "style_leak.svg",
+            "viewbox_slice.svg",
+            "transforms_px_units.svg",
+            "simple_shape_elaborate_multicolor_stock_pattern.svg",
+        ],
         MORE_COLORS,
     ),
 }
 # rsvg draws nothing for viewbox_slice.svg (see RSVG_DIFFERS), before and after.
 MERGED_RSVG_DIFFERS = {
     **dict.fromkeys(
-        ["filled_shapes.svg", "style_leak.svg", "transforms_px_units.svg"], MORE_COLORS
+        [
+            "filled_shapes.svg",
+            "style_leak.svg",
+            "transforms_px_units.svg",
+            "simple_shape_elaborate_multicolor_stock_pattern.svg",
+        ],
+        MORE_COLORS,
     ),
     "percent.svg": RSVG_DIFFERS["percent.svg"],
 }

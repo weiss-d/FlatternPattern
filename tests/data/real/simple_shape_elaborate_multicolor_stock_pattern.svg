@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   sodipodi:docname="simple_shape_elaborate_multicolor_stock_pattern.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#111111"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.94752309"
+     inkscape:cx="339.30572"
+     inkscape:cy="663.30837"
+     inkscape:window-width="1920"
+     inkscape:window-height="1166"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#TableCloth"
+       preserveAspectRatio="xMidYMid"
+       id="pattern1044"
+       patternTransform="scale(1)" />
+    <pattern
+       patternUnits="userSpaceOnUse"
+       preserveAspectRatio="xMidYMid"
+       width="50"
+       height="50"
+       id="TableCloth"
+       inkscape:stockid="Table Cloth"
+       style="fill:none"
+       inkscape:collect="always"
+       inkscape:isstock="true"
+       inkscape:label="Table Cloth">
+      <g
+   id="g152475">
+        <rect
+   style="fill:none;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none"
+   id="rect152346"
+   width="50"
+   height="50"
+   x="0"
+   y="0" />
+
+        <path
+   id="path152348"
+   style="fill:#afecda;fill-opacity:1;stroke:none;stroke-width:0.999995;stroke-dasharray:none"
+   d="m 0.5,25.5 v 22 l 2,2 h 22 v -19 l -5,-5 z" />
+
+        <path
+   id="path152350"
+   style="fill:#a8cbfe;fill-opacity:1;stroke:none;stroke-width:0.999995;stroke-dasharray:none"
+   d="m 30.5,25.5 -5,5 v 19 h 22 l 2,-2 v -22 z" />
+
+        <path
+   id="path152352"
+   style="fill:#cbbbe9;fill-opacity:1;stroke:none;stroke-width:0.999995;stroke-dasharray:none"
+   d="m 25.5,0.5 v 19 l 5,5 h 19 v -22 l -2,-2 z" />
+
+        <path
+   id="path152354"
+   style="fill:#f0b6d3;fill-opacity:1;stroke:none;stroke-width:0.999995;stroke-dasharray:none"
+   d="m 2.5,0.5 -2,2 v 22 h 19 l 5,-5 v -19 z" />
+
+        <path
+   id="path152356"
+   style="fill:#ffe9a6;stroke-width:1"
+   d="m 17.5,37.5 c 0,2.761423 -2.238577,5 -5,5 -2.7614235,0 -5,-2.238577 -5,-5 0,-2.761424 2.2385765,-5 5,-5 2.761423,0 5,2.238576 5,5 z m 2.5,0 C 20,33.345004 16.654996,30 12.5,30 h -12 v 15 h 12 c 4.154996,0 7.5,-3.345004 7.5,-7.5 z"
+   sodipodi:nodetypes="sssssssccss" />
+
+        <path
+   id="path152358"
+   style="fill:#ea95bf;stroke-width:1"
+   d="m 42.5,37.5 c 0,2.761423 -2.238577,5 -5,5 -2.761424,0 -5,-2.238577 -5,-5 0,-2.761424 2.238576,-5 5,-5 2.761423,0 5,2.238576 5,5 z M 37.5,30 C 33.345004,30 30,33.345004 30,37.5 v 12 h 15 v -12 C 45,33.345004 41.654996,30 37.5,30 Z"
+   sodipodi:nodetypes="sssssssccss" />
+
+        <path
+   id="path152360"
+   style="fill:#81b4fe;stroke-width:1"
+   d="m 12.5,7.5 c 2.77,0 5,2.23 5,5 0,2.77 -2.23,5 -5,5 -2.77,0 -5,-2.23 -5,-5 0,-2.77 2.23,-5 5,-5 z m 0,12.5 C 16.654996,20 20,16.654996 20,12.5 V 0.5 H 5 v 12 c 0,4.154996 3.345004,7.5 7.5,7.5 z"
+   sodipodi:nodetypes="sssssssccss" />
+
+        <path
+   id="path152362"
+   style="fill:#8be3c9;stroke-width:1"
+   d="m 42.5,12.5 c 0,2.761423 -2.238577,5 -5,5 -2.761424,0 -5,-2.238577 -5,-5 0,-2.7614235 2.238576,-5 5,-5 2.761423,0 5,2.2385765 5,5 z m -12.5,0 c 0,4.154996 3.345004,7.5 7.5,7.5 h 12 V 5 h -12 C 33.345004,5 30,8.345004 30,12.5 Z"
+   sodipodi:nodetypes="sssssssccss" />
+
+        <path
+   style="fill:#81b4fe;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none"
+   d="m 25.5,30.5 h 5 v -5 z"
+   id="path152364"
+   sodipodi:nodetypes="cccc" />
+
+        <path
+   style="fill:#67dab8;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none"
+   d="m 24.5,30.5 h -5 v -5 z"
+   id="path152366"
+   sodipodi:nodetypes="cccc" />
+
+        <path
+   style="fill:#ea95bf;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none"
+   d="m 24.5,19.5 h -5 v 5 z"
+   id="path152368"
+   sodipodi:nodetypes="cccc" />
+
+        <path
+   style="fill:#b49ddf;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none"
+   d="m 25.5,19.5 h 5 v 5 z"
+   id="path152370"
+   sodipodi:nodetypes="cccc" />
+
+        <path
+   style="fill:#81b4fe;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none"
+   d="m 49.5,47.5 h -2 v 2 z"
+   id="path153287"
+   sodipodi:nodetypes="cccc" />
+
+        <path
+   style="fill:#67dab8;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none"
+   d="m 0.5,47.5 h 2 v 2 z"
+   id="path154015"
+   sodipodi:nodetypes="cccc" />
+
+        <path
+   style="fill:#ea95bf;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none"
+   d="m 0.5,2.5 h 2 v -2 z"
+   id="path154155"
+   sodipodi:nodetypes="cccc" />
+
+        <path
+   style="fill:#b49ddf;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none"
+   d="m 49.5,2.5 h -2 v -2 z"
+   id="path154226"
+   sodipodi:nodetypes="cccc" />
+
+      </g>
+
+    </pattern>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient118859">
+      <stop
+   style="stop-color:#fc0000;stop-opacity:1;"
+   offset="0"
+   id="stop118855" />
+
+      <stop
+   style="stop-color:#000000;stop-opacity:1;"
+   offset="1"
+   id="stop118857" />
+
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient119593">
+      <stop
+   style="stop-color:#000000;stop-opacity:1;"
+   offset="0"
+   id="stop119589" />
+
+      <stop
+   style="stop-color:#f70000;stop-opacity:1;"
+   offset="1"
+   id="stop119591" />
+
+    </linearGradient>
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <ellipse
+       style="fill:url(#pattern1044);fill-rule:evenodd;stroke-width:2;stroke-linecap:round;stroke-miterlimit:4.11;paint-order:fill markers stroke"
+       id="path1"
+       class="target"
+       cx="105"
+       cy="148.5"
+       rx="65.22805"
+       ry="105.54121" />
+  </g>
+</svg>
