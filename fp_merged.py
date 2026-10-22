@@ -31,7 +31,7 @@ from fp_clipped import (
     Part,
     geometry_copy,
     paint_style,
-    styled_copy,
+    template_of,
     transform_within,
 )
 from fp_svg import (
@@ -262,13 +262,10 @@ def shape_copy(elem, transform: inkex.Transform, shown: dict):
 
 def content_of(part: Part, reset: bool, viewport: tuple[float, float]) -> Content:
     """Return the painted shapes and colors of the tile content of part. reset and
-    viewport go to styled_copy().
+    viewport go to template_of().
 
     Raise MergeError for content that cannot become one filled path."""
-    template = inkex.Group()
-    template.set("transform", fmt_transform(part.plan.content))
-    for original in part.pattern.content:
-        template.append(styled_copy(original, reset, viewport))
+    template = template_of(part, reset, viewport)
     shapes, colors, opacity = [], [], 1.0
     for elem in rendered(template):
         if elem.TAG in UNBOUNDED:

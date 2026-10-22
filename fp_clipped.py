@@ -161,6 +161,16 @@ def styled_copy(original, reset: bool, viewport: tuple[float, float]):
     return copy
 
 
+def template_of(part: Part, reset: bool, viewport: tuple[float, float]):
+    """Return a group with the transform C of part and a styled copy of the tile
+    content (see styled_copy()). Both output modes copy the content with this group."""
+    template = inkex.Group()
+    set_raw(template, "transform", fmt_transform(part.plan.content))
+    for original in part.pattern.content:
+        template.append(styled_copy(original, reset, viewport))
+    return template
+
+
 def transform_within(elem, top) -> inkex.Transform:
     """Return the transform from the coordinates of elem to the parent of top."""
     transform = inkex.Transform()
@@ -322,11 +332,8 @@ def tile_group(svg, group_id: str, clip_id: str, part: Part, reset: bool, bleed:
     add_bleed())."""
     group = inkex.Group()
     group.set("id", unique_id(svg, group_id))
-    template = inkex.Group()
-    set_raw(template, "transform", fmt_transform(part.plan.content))
     viewport = (svg.viewbox_width, svg.viewbox_height)
-    for original in part.pattern.content:
-        template.append(styled_copy(original, reset, viewport))
+    template = template_of(part, reset, viewport)
     grow = overlap_of(part.plan, bleed) if bleed > 0 else 0.0
     # The check comes before add_bleed(): the bleed stroke goes past the tile box.
     clip = (
