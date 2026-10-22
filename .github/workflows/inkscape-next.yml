@@ -1,0 +1,34 @@
+name: Inkscape next
+
+# Runs the tests with the nightly build of the next Inkscape release.
+# A separate workflow keeps a failure here out of the CI badge and the required checks.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # Each Monday at 06:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  # Not "test": the main ruleset requires a check with that name.
+  test-next:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The trunk PPA has the nightly build of the development version.
+      - name: Install Inkscape and rsvg-convert
+        run: |
+          sudo add-apt-repository -y ppa:inkscape.dev/trunk
+          sudo apt-get update
+          sudo apt-get install -y inkscape librsvg2-bin
+          inkscape --version
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - run: uv sync
+      - run: uv run pytest -q
