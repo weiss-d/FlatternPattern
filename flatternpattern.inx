@@ -12,7 +12,7 @@
             <param name="keep_original" type="bool" gui-text="Keep a hidden copy of the original">false</param>
             <param name="cleanup_defs" type="bool" gui-text="Remove unused pattern definitions">true</param>
             <param name="tile_limit" type="int" min="1" max="1000000" gui-text="Maximum number of tiles:">2000</param>
-            <param name="tolerance" type="float" min="0" max="1" precision="3" gui-text="Seam overlap (merged mode):">0.01</param>
+            <param name="tolerance" type="float" min="0" max="1" precision="3" gui-text="Seam overlap (merged outlines):">0.01</param>
             <param name="seam_bleed" type="bool" gui-text="Overlap clipped copies to hide seams"
                    gui-description="Renderers show thin light lines where two tiles meet. Select this option to make the shapes in each tile larger by the seam bleed.">false</param>
             <param name="bleed_px" type="float" min="0" max="5" precision="2" gui-text="Seam bleed (px):"
@@ -25,7 +25,9 @@
 
 Clipped copies: the extension puts one copy of the tile content for each tile. A clip path with the shape of the object hides the rest. For a stroke, a mask with the shape of the stroke hides the rest. The result is exact and you can edit it.
 
-Merged outlines: the extension converts strokes to paths and makes one filled path. Use this mode for stencils, plotters and cutters. This mode starts Inkscape in the background and needs more time. The path has the first color of the tile and no transparency. Pattern strokes always get clipped copies. The extension also makes clipped copies, and shows a message, when Inkscape does not start or when the tile has an image, text, a filter, a mask, a clip, markers, a gradient or a nested pattern.
+Merged outlines: the extension converts strokes to paths and makes one filled path. Use this mode for stencils, plotters and cutters. This mode starts Inkscape in the background and needs more time. The path has the first color of the tile and no transparency. Pattern strokes always get clipped copies. The extension also makes clipped copies, and shows a message, in these cases:
+- Inkscape does not start, or it gives no result.
+- The tile has an image, text, a filter, a mask, a clip, markers, a gradient or a nested pattern.
 
 The extension skips these objects and shows a message:
 - text (use Object to Path first)

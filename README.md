@@ -64,8 +64,8 @@ The renderer smooths the edge of each copy, and the two edges do not cover the
 pixel fully. To hide these lines, select "Overlap clipped copies to hide
 seams". Each filled shape then grows by the seam bleed, 0.2 px by default. In
 tests with Inkscape and rsvg at 96 to 300 dpi, 0.2 px left at most 2 light
-pixels on a full page. Tile content with an opacity
-below 1 gets a slightly darker line at each edge.
+pixels on a full page. Tile content with an opacity below 1 gets a slightly
+darker line at each edge.
 
 ### Merged outlines
 
@@ -80,7 +80,7 @@ patterns use values such as 0.995, which look opaque, so they get no message.
 
 The extension makes clipped copies, and shows a message, in these cases:
 
-- The object has a pattern stroke. Merged mode merges only pattern fills.
+- The object has a pattern stroke. This mode merges only pattern fills.
 - Inkscape does not start, or it gives no result.
 - The tile has an image, text, a filter, a mask, a clip, markers, a gradient
   or a nested pattern.
@@ -94,7 +94,7 @@ The extension makes clipped copies, and shows a message, in these cases:
 | Keep a hidden copy of the original | Off | Puts a hidden copy of each object after its group, with the id `ID-original`. |
 | Remove unused pattern definitions | On | Removes the patterns, clips, masks and filters that nothing uses after the change. |
 | Maximum number of tiles | 2000 | Stops the extension when the selection needs more tiles. |
-| Seam overlap (merged mode) | 0.01 | Makes each tile larger by this distance in user units. This prevents thin gaps between merged tiles. |
+| Seam overlap (merged outlines) | 0.01 | Makes each tile larger by this distance in user units. This prevents thin gaps between merged tiles. |
 | Overlap clipped copies to hide seams | Off | Makes the shapes in each clipped copy larger by the seam bleed. |
 | Seam bleed (px) | 0.2 | Sets the distance for the option above, in px (1/96 in). |
 | Match the Inkscape view, not the SVG standard | Off | Keeps the Inkscape view of patterns with `objectBoundingBox` units. |
@@ -151,7 +151,7 @@ render tests need the `inkscape` and `rsvg-convert` commands. If a command is
 not available, pytest skips the tests that need it.
 
 `docs/spike-merged-mode.md` records the test of the Inkscape actions that
-merged mode uses.
+the merged outlines mode uses.
 
 ## License
 

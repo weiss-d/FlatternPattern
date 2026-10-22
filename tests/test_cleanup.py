@@ -10,7 +10,7 @@ def patterns(doc) -> set[str]:
 
 
 def test_chain_is_removed():
-    # The wrapper is removed first. Then nothing refers to the base either.
+    # The cleanup removes the wrapper first. Then nothing refers to the base either.
     assert patterns(load(flatten("chained.svg"))) == set()
 
 
