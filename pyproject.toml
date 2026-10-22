@@ -15,6 +15,7 @@ dev = [
     "tinycss2",
     "numpy",
     "pillow",
+    "coverage",
 ]
 
 [tool.pyright]
@@ -33,3 +34,9 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["inkscape: renders with the inkscape executable"]
+
+# The CI coverage action reads .coverage in another folder, so it needs relative paths.
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*"]
+relative_files = true
