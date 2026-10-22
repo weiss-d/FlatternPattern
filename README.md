@@ -8,13 +8,81 @@ Inkscape 1.4 has "Objects to Pattern" and "Pattern to Objects". "Pattern to
 Objects" gives one tile only. FlatternPattern gives all the tiles that the
 object shows, cut to the shape of the object.
 
+The two images show a rectangle before and after the extension, in the
+Inkscape split view. The top half shows the normal view. The bottom half
+shows the outline view.
+
+### Clipped copies
+
+The result looks the same as the pattern fill. Each tile is a copy that you
+can select and edit.
+
+![A rectangle with a pattern fill of gradient spheres, before and after clipped copies](docs/images/before-after_colored_clipping.webp)
+
+### Merged outlines
+
+The result is one filled path.
+
+![A rectangle with a pattern fill of black leaves, before and after merged outlines](docs/images/before-after_bw_merge.webp)
+
+## Contents
+
+- [Requirements](#requirements)
+- [Tested with](#tested-with)
+- [Install](#install)
+- [Use](#use)
+- [Output modes](#output-modes)
+  - [Clipped copies](#clipped-copies-1)
+  - [Merged outlines](#merged-outlines-1)
+- [Options](#options)
+  - [Patterns with objectBoundingBox units](#patterns-with-objectboundingbox-units)
+  - [Clips, masks and filters on the object](#clips-masks-and-filters-on-the-object)
+- [Known limitations](#known-limitations)
+- [How it works](#how-it-works)
+- [Development](#development)
+- [Reporting issues](#reporting-issues)
+- [How this was made](#how-this-was-made)
+- [License](#license)
+
 ## Requirements
 
 - Inkscape 1.4. The development used Inkscape 1.4.4 on Linux.
 - No other packages. The extension uses the `inkex` package that comes with
   Inkscape.
 
-The tests ran on Linux only. Nobody tested the extension on Windows or macOS.
+## Tested with
+
+- Inkscape 1.4.4 on Manjaro Linux, with the bundled `inkex` 1.4.0 and
+  Python 3.13.
+- Not tested on Windows or macOS yet.
+
+The automated test suite has 353 tests. The tests cover these items:
+
+- The `href` chain of a pattern: inherited attributes, cycles, missing targets.
+- Lengths with units, fractions and percentages.
+- `patternUnits`, `patternContentUnits`, `patternTransform`, `viewBox` and
+  `preserveAspectRatio`.
+- The tile range. A test compares it with a brute-force overlap check for
+  random transforms.
+- The stroke area: caps, joins, miter limits, dashes and markers.
+- Styles: inheritance from the pattern, not from the object, and stylesheets.
+- Clips, masks, filters and opacity on the object, and `paint-order`.
+- The selection: groups, text, clones, hatches and mesh gradients.
+- The two output modes, the fallback to clipped copies, and the tile limit.
+- The removal of unused definitions, and the `.inx` file.
+
+105 of the tests are render comparisons. Each test renders the input and the
+output to PNG with Inkscape or `rsvg-convert`. A pixel is different when one
+color channel changes by more than 64 of 255. The test fails when more than
+0.1 % of the pixels are different. The input files are the fixtures in
+`tests/data/flatten/` and five files made in the Inkscape GUI in
+`tests/data/real/`. Some inputs show a known difference between the renderers
+or a known limit of merged outlines. These tests are expected failures, each
+with its reason in the test file. One more test checks that the seam bleed
+removes at least 90 % of the light seam pixels.
+
+The project has no CI. The tests run on the developer machine, before each
+push of a version change.
 
 ## Install
 
@@ -124,7 +192,7 @@ The extension does not convert the `primitiveUnits` of a filter. When a
 filter uses `primitiveUnits="objectBoundingBox"`, the extension shows a
 message. The filter result can look different.
 
-## Limits
+## Known limitations
 
 The extension skips these objects and shows a message:
 
@@ -143,6 +211,49 @@ needs.
 A pattern with no area, or a pattern with no content, paints nothing. The
 extension then sets the fill or the stroke to `none` and shows a message.
 
+Other limits, with the behavior of the extension:
+
+- Merged outlines give one color and no transparency. Pattern strokes and
+  some tile contents get clipped copies instead (see
+  [Merged outlines](#merged-outlines-1)).
+- Clipped copies of a pattern stroke use a mask. Some cutters do not support
+  masks.
+- Clipped copies can show thin light seams on the screen. The seam bleed
+  option hides most of them (see [Clipped copies](#clipped-copies-1)).
+- A pattern with `objectBoundingBox` units can move in Inkscape, because the
+  output follows the SVG standard. The extension shows a message (see
+  [Patterns with objectBoundingBox units](#patterns-with-objectboundingbox-units)).
+- The extension does not convert the `primitiveUnits` of a filter on the
+  object. It shows a message (see
+  [Clips, masks and filters on the object](#clips-masks-and-filters-on-the-object)).
+
+## How it works
+
+The extension does these steps for each object with a pattern paint:
+
+1. Resolve the pattern. [`fp_resolve.resolve()`](fp_resolve.py) follows the
+   `href` chain. Each attribute comes from the first pattern in the chain that
+   sets it. The content comes from the first pattern with child elements. A
+   circular chain stops the work for this object.
+2. Find the tiles. [`fp_tiling.tile_box()`](fp_tiling.py) calculates the tile
+   rectangle from the units and the box of the object.
+   `content_transform()` adds the `viewBox` or the content units.
+   `plan()` moves the box of the object back through the inverse
+   `patternTransform`. It then keeps only the tiles that overlap the object.
+   The extension adds the tile counts of all objects before it changes the
+   document. Over the limit, it stops.
+3. Clipped copies: [`fp_clipped.flatten_element()`](fp_clipped.py) puts one
+   copy of the tile content in each tile, with the transform from
+   `tile_transform()`. Each copy gets the full style that it had in the
+   pattern. A tile clip cuts the content that goes out of the tile. A clip in
+   the shape of the object cuts the full fill. A mask in the shape of the
+   stroke cuts a stroke.
+4. Merged outlines: [`fp_merged.merge_fills()`](fp_merged.py) starts Inkscape
+   two times. The first run converts the strokes of the tile to paths, joins
+   them, and cuts the result to the tile. The seam overlap makes the tile
+   slightly larger. The second run joins all tile copies and cuts them to the
+   shape of the object. The result is one path.
+
 ## Development
 
 The development tools use [uv](https://docs.astral.sh/uv/).
@@ -158,6 +269,18 @@ not available, pytest skips the tests that need it.
 
 `docs/spike-merged-mode.md` records the test of the Inkscape actions that
 the merged outlines mode uses.
+
+## Reporting issues
+
+Report problems and requests on the
+[issue tracker](https://github.com/weiss-d/FlatternPattern/issues). Attach a
+small SVG file that shows the problem, if possible.
+
+## How this was made
+
+I made this extension with AI coding help (Claude Code). I designed the
+extension, reviewed the code and tested it. 353 automated tests check it,
+and 105 of them compare renders. I maintain it and answer the issues myself.
 
 ## License
 
