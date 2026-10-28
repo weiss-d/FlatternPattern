@@ -236,7 +236,10 @@ The extension does these steps for each object with a pattern paint:
 
 - Inkscape 1.4.4 on Manjaro Linux, with the bundled `inkex` 1.4.0 and
   Python 3.13.
-- Not tested on Windows or macOS yet.
+- Inkscape 1.4.4 on Windows, with the bundled `inkex` and Python 3.13. Only
+  the automated tests run on Windows. The extension dialog is not tested on
+  Windows yet.
+- Not tested on macOS yet.
 
 The automated test suite has 353 tests. The tests cover these items:
 
@@ -271,6 +274,10 @@ change.
 A second workflow runs all tests with the nightly build of Inkscape 1.5 from
 the Inkscape trunk PPA. It runs for each push to `main`, each pull request
 and each Monday. Its result does not block a merge.
+
+A third workflow runs all tests on Windows with Inkscape 1.4.4 from
+Chocolatey. It runs for each push to `main` and each pull request. The
+`rsvg-convert` tests skip on Windows. Its result does not block a merge.
 
 The coverage badge at the top of this file shows the part of the statements
 in the extension code that the tests run. The value comes from the last CI
