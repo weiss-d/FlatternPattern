@@ -198,6 +198,9 @@ Other limits, with the behavior of the extension:
 - The extension does not convert the `primitiveUnits` of a filter on the
   object. It shows a message (see
   [Clips, masks and filters on the object](#clips-masks-and-filters-on-the-object)).
+- On Windows, the screen can show a white window for a short time during
+  merged outlines. Inkscape opens this window for each of its two runs. The
+  output does not change.
 
 ## Reporting issues
 
@@ -236,9 +239,10 @@ The extension does these steps for each object with a pattern paint:
 
 - Inkscape 1.4.4 on Manjaro Linux, with the bundled `inkex` 1.4.0 and
   Python 3.13.
-- Inkscape 1.4.4 on Windows, with the bundled `inkex` and Python 3.13. Only
-  the automated tests run on Windows. The extension dialog is not tested on
-  Windows yet.
+- Inkscape 1.4.4 on Windows, with the bundled `inkex` and Python 3.13. The
+  automated tests run on Windows in CI.
+- Inkscape from the Microsoft Store on Windows 11. The developer tested both
+  output modes by hand in the extension dialog.
 - Not tested on macOS yet.
 
 The automated test suite has 353 tests. The tests cover these items:
