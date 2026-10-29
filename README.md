@@ -198,6 +198,9 @@ Other limits, with the behavior of the extension:
 - The extension does not convert the `primitiveUnits` of a filter on the
   object. It shows a message (see
   [Clips, masks and filters on the object](#clips-masks-and-filters-on-the-object)).
+- On Windows, the screen can show a white window for a short time during
+  merged outlines. Inkscape opens this window for each of its two runs. The
+  output does not change.
 
 ## Reporting issues
 
@@ -236,10 +239,12 @@ The extension does these steps for each object with a pattern paint:
 
 - Inkscape 1.4.4 on Manjaro Linux, with the bundled `inkex` 1.4.0 and
   Python 3.13.
-- Inkscape 1.4.4 on Windows, with the bundled `inkex` and Python 3.13. Only
-  the automated tests run on Windows. The extension dialog is not tested on
-  Windows yet.
-- Not tested on macOS yet.
+- Inkscape 1.4.4 on Windows, with the bundled `inkex` and Python 3.13. The
+  automated tests run on Windows in CI.
+- Inkscape from the Microsoft Store on Windows 11. The developer tested both
+  output modes by hand in the extension dialog.
+- Inkscape 1.4.4 on macOS, with the bundled `inkex`. The automated tests
+  run on macOS in CI. The extension dialog on macOS has not been tested yet by hand.
 
 The automated test suite has 353 tests. The tests cover these items:
 
@@ -275,9 +280,10 @@ A second workflow runs all tests with the nightly build of Inkscape 1.5 from
 the Inkscape trunk PPA. It runs for each push to `main`, each pull request
 and each Monday. Its result does not block a merge.
 
-A third workflow runs all tests on Windows with Inkscape 1.4.4 from
-Chocolatey. It runs for each push to `main` and each pull request. The
-`rsvg-convert` tests skip on Windows. Its result does not block a merge.
+Two more workflows run all tests with Inkscape 1.4.4 on Windows and on macOS.
+Chocolatey installs Inkscape on Windows. Homebrew installs it on macOS. They
+run for each push to `main` and each pull request. The `rsvg-convert` tests
+skip on these systems. Their results do not block a merge.
 
 The coverage badge at the top of this file shows the part of the statements
 in the extension code that the tests run. The value comes from the last CI
