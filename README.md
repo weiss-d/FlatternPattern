@@ -244,7 +244,9 @@ The extension does these steps for each object with a pattern paint:
 - Inkscape from the Microsoft Store on Windows 11. The developer tested both
   output modes by hand in the extension dialog.
 - Inkscape 1.4.4 on macOS, with the bundled `inkex`. The automated tests
-  run on macOS in CI. The extension dialog on macOS has not been tested yet by hand.
+  run on macOS in CI.
+- Inkscape from the inkscape.org DMG on macOS Sonoma. The developer tested
+  the extension dialog by hand.
 
 The automated test suite has 353 tests. The tests cover these items:
 
